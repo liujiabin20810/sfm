@@ -1,0 +1,52 @@
+﻿生成启动时间为 2017/6/23 16:49:33。
+     1>项目“E:\3D\Photograph\SFM\bundler_sfm-master\lib\ann_1.1_char\ann_1.1_char.vcxproj”在节点 3 上(build 个目标)。
+     1>InitializeBuildStatus:
+         正在对“Release\ann_1.1_char.unsuccessfulbuild”执行 Touch 任务。
+       ClCompile:
+         d:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\bin\CL.exe /c /Iinclude /Zi /nologo /W3 /WX- /O2 /Oy- /GL /D WIN32 /D NDEBUG /D _LIB /D _WINDOWS /D _USRDLL /D DLL_EXPORTS /D ANN_PERF /D ANN_NO_RANDOM /D _WINDLL /D _UNICODE /D UNICODE /Gm- /EHsc /MD /GS /fp:precise /Zc:wchar_t /Zc:forScope /Fo"Release\\" /Fd"Release\vc100.pdb" /Gd /TP /analyze- /errorReport:prompt src\ANN.cpp src\bd_fix_rad_search.cpp src\bd_pr_search.cpp src\bd_search.cpp src\bd_tree.cpp src\brute.cpp src\kd_dump.cpp src\kd_fix_rad_search.cpp src\kd_pr_search.cpp src\kd_search.cpp src\kd_split.cpp src\kd_tree.cpp src\kd_util.cpp src\perf.cpp
+         ANN.cpp
+         bd_fix_rad_search.cpp
+         bd_pr_search.cpp
+         bd_search.cpp
+         bd_tree.cpp
+         brute.cpp
+         kd_dump.cpp
+         kd_fix_rad_search.cpp
+         kd_pr_search.cpp
+         kd_search.cpp
+         kd_split.cpp
+     1>src\kd_split.cpp(289): warning C4244: “初始化”: 从“const double”转换到“ann_1_1_char::ANNcoord”，可能丢失数据
+     1>src\kd_split.cpp(395): warning C4244: “初始化”: 从“const double”转换到“ann_1_1_char::ANNcoord”，可能丢失数据
+         kd_tree.cpp
+         kd_util.cpp
+     1>src\kd_util.cpp(276): warning C4244: “=”: 从“double”转换到“ann_1_1_char::ANNcoord”，可能丢失数据
+         perf.cpp
+       Link:
+         d:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\bin\link.exe /ERRORREPORT:PROMPT /OUT:"E:\3D\Photograph\SFM\bundler_sfm-master\vc++\Release\ann_1.1_char.dll" /NOLOGO kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /MANIFEST /ManifestFile:"Release\ann_1.1_char.dll.intermediate.manifest" /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /PDB:"E:\3D\Photograph\SFM\bundler_sfm-master\vc++\Release\ann_1.1_char.pdb" /LTCG /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:"E:\3D\Photograph\SFM\bundler_sfm-master\vc++\Release\ann_1.1_char.lib" /MACHINE:X86 /DLL Release\ANN.obj
+         Release\bd_fix_rad_search.obj
+         Release\bd_pr_search.obj
+         Release\bd_search.obj
+         Release\bd_tree.obj
+         Release\brute.obj
+         Release\kd_dump.obj
+         Release\kd_fix_rad_search.obj
+         Release\kd_pr_search.obj
+         Release\kd_search.obj
+         Release\kd_split.obj
+         Release\kd_tree.obj
+         Release\kd_util.obj
+         Release\perf.obj
+            正在创建库 E:\3D\Photograph\SFM\bundler_sfm-master\vc++\Release\ann_1.1_char.lib 和对象 E:\3D\Photograph\SFM\bundler_sfm-master\vc++\Release\ann_1.1_char.exp
+         正在生成代码
+         已完成代码的生成
+         ann_1.1_char.vcxproj -> E:\3D\Photograph\SFM\bundler_sfm-master\vc++\Release\ann_1.1_char.dll
+       Manifest:
+         C:\Program Files (x86)\Microsoft SDKs\Windows\v7.0A\bin\mt.exe /nologo /verbose /outputresource:"E:\3D\Photograph\SFM\bundler_sfm-master\vc++\Release\ann_1.1_char.dll;#2" /manifest Release\ann_1.1_char.dll.intermediate.manifest
+       FinalizeBuildStatus:
+         正在删除文件“Release\ann_1.1_char.unsuccessfulbuild”。
+         正在对“Release\ann_1.1_char.lastbuildstate”执行 Touch 任务。
+     1>已完成生成项目“E:\3D\Photograph\SFM\bundler_sfm-master\lib\ann_1.1_char\ann_1.1_char.vcxproj”(build 个目标)的操作。
+
+生成成功。
+
+已用时间 00:00:06.51

@@ -121,7 +121,7 @@ namespace bundler
                                          * in this image */
 			std::vector<int> m_visible_keys;
 
-			//std::vector<Keypoint> m_keys;              /* Keypoints in this image */
+			std::vector<Keypoint> m_keys;              /* Keypoints in this image */
 
 			//std::vector<int> m_tracks;		/* Track index this point corresponds to */
 
@@ -235,6 +235,8 @@ namespace bundler
 		std::vector<KeypointMatch> &GetMatchList(MatchIndex idx) {
 			// assert(Contains(idx));
 			// return m_match_lists[idx.first][idx.second];
+			if (!Contains(idx))
+				return std::vector<KeypointMatch>();
 
 			AdjListElem e;
 			e.m_index = idx.second;
@@ -330,6 +332,17 @@ namespace bundler
 		
 		bool ComputeEpipolarGeometry(int idx1, int idx2) ;
 
+		std::vector<int> EstimateTransform(int idx1,int idx2,double M[]);
+
+		/* Compute rigid transforms between all matching images */
+		void ComputeTransform();
+		
+		bool ComputeTransform(int idx1,int idx2);
+
+		bool ImagesMatch(int i1, int i2);
+
+		void SetMatch(int i1, int i2);
+
 		void RemoveAllMatches();
 		/* Prune points that match to multiple targets */
 		void PruneDoubleMatches();
@@ -340,6 +353,11 @@ namespace bundler
 		MatchTracks(void);
 
 		void ComputeTracks(int new_image_start);
+
+		std::vector<int> GetVectorIntersection(const std::vector<int> &v1,
+			const std::vector<int> &v2);
+
+		void SetTracks(int image);
 
 		void SetMatchesFromTracks();
 
@@ -355,7 +373,7 @@ namespace bundler
 		std::map<std::pair<int, int>, std::vector<cv::DMatch> > m_matches_matrix;
 
 		// source images Keypoints
-		std::vector<std::vector<cv::KeyPoint>> m_images_points;
+		//std::vector<std::vector<cv::KeyPoint>> m_images_points;
 
 		std::map<std::pair<int, int>, cv::Mat > m_fmatrix;
 

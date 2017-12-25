@@ -78,12 +78,13 @@ namespace bundler
 	void SIFT::setImageList(std::vector<std::string> imgList)
 	{
 		m_nimage = imgList.size();
-
+		m_strimgList.resize(m_nimage);
 		for (int i =0; i< m_nimage && i < 50; i++)
 		{
 			int len = strlen(imgList[i].c_str());
 
 			m_imgList[i] = imgList[i].c_str();
+			m_strimgList[i] = imgList[i];
 		}
 
 		m_sift->SetImageList(m_nimage,m_imgList);
@@ -141,6 +142,31 @@ namespace bundler
 		
 	}
 
+#define Vx(v) (v)[0]
+#define Vy(v) (v)[1]
+#define Vz(v) (v)[2]
+	
+	double fmatrix_compute_residual(double *F, double* r, double* l)
+	{
+		double Fl[3], Fr[3], pt;    
+
+		Fl[0] = F[0] * Vx(l) + F[1] * Vy(l) + F[2] * Vz(l);
+		Fl[1] = F[3] * Vx(l) + F[4] * Vy(l) + F[5] * Vz(l);
+		Fl[2] = F[6] * Vx(l) + F[7] * Vy(l) + F[8] * Vz(l);
+
+		Fr[0] = F[0] * Vx(r) + F[3] * Vy(r) + F[6] * Vz(r);
+		Fr[1] = F[1] * Vx(r) + F[4] * Vy(r) + F[7] * Vz(r);
+		Fr[2] = F[2] * Vx(r) + F[5] * Vy(r) + F[8] * Vz(r);
+
+		pt = Vx(r) * Fl[0] + Vy(r) * Fl[1] + Vz(r) * Fl[2];
+
+
+		return
+			(1.0 / (Fl[0] * Fl[0] + Fl[1] * Fl[1]) +
+			1.0 / (Fr[0] * Fr[0] + Fr[1] * Fr[1])) *
+			(pt * pt);
+	}
+
 	std::vector<int> SIFT::findInliers(std::vector<SiftGPU::SiftKeypoint> &queryKeypoints, std::vector<SiftGPU::SiftKeypoint> &objKeypoints,cv::Mat& F,int match_buf[][2], int match_num)
 	{
 		// 计算F矩阵
@@ -158,81 +184,175 @@ namespace bundler
 		
 		F = cv::findFundamentalMat(queryCoord, objectCoord, mask, CV_FM_RANSAC);
 
+		double f[9];
+		f[0] = F.ptr<double>(0)[0];
+		f[1] = F.ptr<double>(0)[1];
+		f[2] = F.ptr<double>(0)[2];
+		f[3] = F.ptr<double>(1)[0];
+		f[4] = F.ptr<double>(1)[1];
+		f[5] = F.ptr<double>(1)[2];
+		f[6] = F.ptr<double>(2)[0];
+		f[7] = F.ptr<double>(2)[1];
+		f[8] = F.ptr<double>(2)[2];
+
 		cv::vector<int> inliers;
 		inliers.resize(match_num);
 
-//		std::cout<<"个数： "<<mask.rows<<" "<<match_num<<" "<<mask.cols<<std::endl;
-
+		//std::cout<<"个数： "<<mask.rows<<" "<<match_num<<" "<<f[0]<<std::endl;
+		std::vector<double> residuals(match_num);
+		
+		double threshold = 5.0625;
 		int inliers_cnt = 0, outliers_cnt = 0;
-		for (int j = 0; j < mask.rows; j++){
-			if (mask.at<uchar>(j) == 1){
-				inliers[j] = 1;
-				inliers_cnt++;
-			}else {
+		std::vector<int> preIndex;
+		for (int j = 0; j < mask.rows; j++)
+		{
+			if (mask.at<uchar>(j) == 1)
+			{
+				
+				double lp[3] = {0.0,0.0,1.0},rp[3] = {0.0,0.0,1.0};
+				lp[0] = queryCoord[j].x;
+				lp[1] = queryCoord[j].y;
+
+				rp[0] = objectCoord[j].x;
+				rp[1] = objectCoord[j].y;
+				
+				double dist = fmatrix_compute_residual(f,rp,lp);
+				
+				if(threshold < dist)
+				{
+					inliers[j] = 0;
+				}
+				else
+				{
+					inliers[j] = 1;
+					inliers_cnt++;
+					preIndex.push_back(j);
+				}
+			}
+			else
+			{
 				inliers[j] = 0;
-				outliers_cnt++;
+			}
+		}		
+
+		//std::cout<<"[F matrix] first inliers: "<< inliers_cnt <<std::endl;
+		queryCoord.clear();
+		objectCoord.clear();
+		for( int i = 0; i < match_num; i++){
+			if(!inliers[i])
+				continue;
+			queryCoord.push_back(cv::Point2f(queryKeypoints[match_buf[i][0]].x ,queryKeypoints[match_buf[i][0]].y));
+			objectCoord.push_back(cv::Point2f(objKeypoints[match_buf[i][1]].x ,objKeypoints[match_buf[i][1]].y));
+		}
+		
+		cv::Mat mask2;
+		F = cv::findFundamentalMat(queryCoord, objectCoord, mask2, CV_FM_RANSAC);
+
+		f[0] = F.ptr<double>(0)[0];
+		f[1] = F.ptr<double>(0)[1];
+		f[2] = F.ptr<double>(0)[2];
+		f[3] = F.ptr<double>(1)[0];
+		f[4] = F.ptr<double>(1)[1];
+		f[5] = F.ptr<double>(1)[2];
+		f[6] = F.ptr<double>(2)[0];
+		f[7] = F.ptr<double>(2)[1];
+		f[8] = F.ptr<double>(2)[2];
+
+		inliers_cnt = 0;
+		double sum_residual = 0.0;
+		int count_residual = 0;
+		for (int j = 0; j < mask2.rows; j++){
+			if (mask2.at<uchar>(j) == 1)
+			{
+
+				double lp[3] = {0.0,0.0,1.0},rp[3] = {0.0,0.0,1.0};
+				lp[0] = queryCoord[j].x;
+				lp[1] = queryCoord[j].y;
+
+				rp[0] = objectCoord[j].x;
+				rp[1] = objectCoord[j].y;
+
+				double dist = fmatrix_compute_residual(f,rp,lp);
+				if(dist > threshold)
+				{
+					count_residual++;
+					int preidx = preIndex[j];
+					inliers[preidx] = 0;
+				}
+				else
+				{
+					sum_residual += dist;
+					inliers_cnt++;
+				}
+			}
+			else
+			{
+				count_residual++;
+				int preidx = preIndex[j];
+				inliers[preidx] = 0;
 			}
 		}
 
 #ifdef _DEBUG
-		std::cout<<"Inliers Num: "<<inliers_cnt <<std::endl;
+		std::cout<<"inliers num: "<<inliers_cnt <<std::endl;
 #endif
+//		std::cout<<"inliers num: "<<inliers_cnt<<" re-project err: "<< sum_residual/inliers_cnt <<std::endl;
 		
 		return inliers;
 	}
 	
-	std::vector<int> SIFT::match(std::vector<SiftGPU::SiftKeypoint> queryKeypoints, std::vector<SiftGPU::SiftKeypoint> trainedKeypoints,
-		std::vector<float> queryDescriptors,std::vector<float> trainedDescriptors,int match_buffer[][2] )
-	{
-		int queryPtsNum = queryKeypoints.size();
-		int trainedPtsNum = trainedKeypoints.size();
+// 	std::vector<int> SIFT::match(std::vector<SiftGPU::SiftKeypoint> queryKeypoints, std::vector<SiftGPU::SiftKeypoint> trainedKeypoints,
+// 		std::vector<float> queryDescriptors,std::vector<float> trainedDescriptors,int match_buffer[][2] )
+// 	{
+// 		int queryPtsNum = queryKeypoints.size();
+// 		int trainedPtsNum = trainedKeypoints.size();
+// 
+// #ifdef _DEBUG
+// 		std::cout<<"queryPtsNum = " << queryPtsNum << std::endl;
+// 		std::cout<<"trainedPtsNum = " << trainedPtsNum << std::endl;
+// #endif // _DEBUG
+// 
+// 		m_matcher->SetDescriptors(0, queryPtsNum, &queryDescriptors[0]); //image 1
+//		m_matcher->SetDescriptors(1, trainedPtsNum, &trainedDescriptors[0]); //image 2
+// 
+// 		int (*_buf)[2] = new int[queryPtsNum][2];
+// 		int num_match = m_matcher->GetSiftMatch(queryPtsNum, _buf);
+// 
+// #ifdef _DEBUG
+// 		std::cout << num_match << " sift matches were found;\n";
+// #endif // _DEBUG
+// 
+// 		std::vector<int> mask;
+// 		int good_match_num = 0;
+// 		int j = 0;
+// 
+// 		if(num_match > 16)
+// 		{
+// 			cv::Mat F;
+// 			mask = findInliers(queryKeypoints,trainedKeypoints,F,_buf,num_match);
+// 			
+// 			for (int i=0; i< num_match; i++)
+// 			{
+// 				if(mask[i])
+// 				{
+// 					match_buffer[j][0] = _buf[i][0];
+// 					match_buffer[j][1] = _buf[i][1];
+// 
+// 					j++;
+// 				}
+// 			}
 
-#ifdef _DEBUG
-		std::cout<<"queryPtsNum = " << queryPtsNum << std::endl;
-		std::cout<<"trainedPtsNum = " << trainedPtsNum << std::endl;
-#endif // _DEBUG
-
-		m_matcher->SetDescriptors(0, queryPtsNum, &queryDescriptors[0]); //image 1
-		m_matcher->SetDescriptors(1, trainedPtsNum, &trainedDescriptors[0]); //image 2
-
-		int (*_buf)[2] = new int[queryPtsNum][2];
-		int num_match = m_matcher->GetSiftMatch(queryPtsNum, _buf);
-
-#ifdef _DEBUG
-		std::cout << num_match << " sift matches were found;\n";
-#endif // _DEBUG
-
-		std::vector<int> mask;
-		int good_match_num = 0;
-		int j = 0;
-
-		if(num_match > 16)
-		{
-			cv::Mat F;
-			mask = findInliers(queryKeypoints,trainedKeypoints,F,_buf,num_match);
-			
-			for (int i=0; i< num_match; i++)
-			{
-				if(mask[i])
-				{
-					match_buffer[j][0] = _buf[i][0];
-					match_buffer[j][1] = _buf[i][1];
-
-					j++;
-				}
-			}
-
-			good_match_num = j;
-		}
-
-#ifdef _DEBUG		
-		std::cout<<"good match num : "<<good_match_num << std::endl;
-#endif // _DEBUG
-
-		delete[] _buf;
-
-		return mask;
-	}
+//			good_match_num = j;
+//		}
+// 
+// #ifdef _DEBUG		
+// 		std::cout<<"good match num : "<<good_match_num << std::endl;
+// #endif // _DEBUG
+// 
+// 		delete[] _buf;
+// 
+// 		return mask;
+// 	}
 
 	int SIFT::match(std::vector<SiftGPU::SiftKeypoint> queryKeypoints, std::vector<SiftGPU::SiftKeypoint> trainedKeypoints,
 		std::vector<float> queryDescriptors, std::vector<float> trainedDescriptors, int match_buffer[][2], cv::Mat &F)
@@ -259,7 +379,7 @@ namespace bundler
 		int good_match_num = 0;
 		int j = 0;
 
-		if ( num_match > 50 )
+		if ( num_match > 30 )
 		{
 			mask = findInliers(queryKeypoints, trainedKeypoints, F, _buf, num_match);
 
@@ -286,102 +406,369 @@ namespace bundler
 		return good_match_num;
 	}
 
-	std::vector<int> SIFT::match(std::vector<std::vector<SiftKeypoint>> Keypoints,std::vector<std::vector<float>> Descriptors,
-		std::vector<std::vector<std::pair<int ,int >>>& match_buffer)
+// 	std::vector<int> SIFT::match(std::vector<std::vector<SiftKeypoint>> Keypoints,std::vector<std::vector<float>> Descriptors,
+// 		std::vector<std::vector<std::pair<int ,int >>>& match_buffer)
+// 	{
+// 		std::vector<int> good_match_num;
+// 		good_match_num.resize(m_nimage);
+// 
+// 		match_buffer.clear();
+// 
+// 		std::vector<SiftKeypoint> queryKpts,trainedKpts;
+// 		std::vector<float> queryDes,trainedDes;
+// 
+// 		for (int i=0; i < m_nimage-1; i++)
+// 		{
+// 			queryKpts = Keypoints[i];
+// 			queryDes = Descriptors[i];
+// 
+// 			int n = queryKpts.size();
+// 			int (*_buf)[2] = new int[n][2];
+// 
+// 			for(int j = i+1; j< m_nimage; j++)
+// 			{
+// 				std::cout<<i<<" "<< j <<": \n";
+// 
+// 				trainedKpts = Keypoints[j];
+// 				trainedDes = Descriptors[j];
+// 
+// 				std::vector<int> match_mask = match(queryKpts, trainedKpts, queryDes, trainedDes, _buf);
+// 
+// 				std::vector<std::pair<int,int>> match_buf;
+// 
+// 				int _index = 0;
+// 				for (int k = 0; k< match_mask.size(); k++)
+// 				{
+// 					if (match_mask[k] == 0)
+// 						continue;
+// 
+// 					int queryIdx = _buf[_index][0];
+// 					int trainedIdx = _buf[_index][1];
+// 					match_buf.push_back(std::make_pair(queryIdx,trainedIdx));
+// 
+// 					_index++;
+// 				}
+// 				std::cout << std::endl;
+// 
+// 				match_buffer.push_back(match_buf);
+// 
+// 			}
+// 
+// 			delete [] _buf;
+// 		}
+// 
+// 		return good_match_num;
+// 	}
+
+	bool SIFT::writeSiftMatch(std::ofstream &fp, std::vector<cv::DMatch> & matches)
 	{
-		std::vector<int> good_match_num;
-		good_match_num.resize(m_nimage);
-
-		match_buffer.clear();
-
-		std::vector<SiftKeypoint> queryKpts,trainedKpts;
-		std::vector<float> queryDes,trainedDes;
-
-		for (int i=0; i < m_nimage-1; i++)
+		if(fp.is_open())
 		{
-			queryKpts = Keypoints[i];
-			queryDes = Descriptors[i];
+			int match_num = matches.size();
 
-			int n = queryKpts.size();
-			int (*_buf)[2] = new int[n][2];
+			for (int k = 0; k < match_num; k++)
+				fp<<matches[k].queryIdx<<" ";
+			fp<<std::endl;
+			for (int k = 0; k < match_num; k++)
+				fp<<matches[k].trainIdx<<" ";
 
-			for(int j = i+1; j< m_nimage; j++)
-			{
-				std::cout<<i<<" "<< j <<": \n";
-
-				trainedKpts = Keypoints[j];
-				trainedDes = Descriptors[j];
-
-				std::vector<int> match_mask = match(queryKpts, trainedKpts, queryDes, trainedDes, _buf);
-
-				std::vector<std::pair<int,int>> match_buf;
-
-				int _index = 0;
-				for (int k = 0; k< match_mask.size(); k++)
-				{
-					if (match_mask[k] == 0)
-						continue;
-
-					int queryIdx = _buf[_index][0];
-					int trainedIdx = _buf[_index][1];
-					match_buf.push_back(std::make_pair(queryIdx,trainedIdx));
-
-					_index++;
-				}
-				std::cout << std::endl;
-
-				match_buffer.push_back(match_buf);
-
-			}
-
-			delete [] _buf;
+			return true;
 		}
-
-		return good_match_num;
+		else
+			return false;
 	}
-
-	void SIFT::writeSiftMatch(std::ofstream &fp, std::vector<std::vector<std::pair<int ,int >>>& match_buffer)
+	
+	bool SIFT::writeSiftMatch( std::map<std::pair<int, int>,std::vector<cv::DMatch> >& matches_matrix)
 	{
+		int i,j;
 		int idx = 0;
-		for(int i = 0; i < m_nimage-1; i++)
-			for(int j = i + 1; j < m_nimage; j++)
+		for(i = 0 ; i < m_nimage-1; i++)
+			for (j = i+1 ; j < m_nimage; j++)
 			{
-				std::vector<std::pair<int ,int >> buff = match_buffer[idx];
-				idx++;
+				std::vector<cv::DMatch> _matches = matches_matrix[std::make_pair(i,j)];
 
-				int match_num = buff.size();
+				if(_matches.empty())
+					continue;
 
-				fp << i <<" "<<j<<" "<<match_num<<std::endl;
+				std::string filename = m_strimgList[i];
+				int pos = filename.rfind(".");
+				if(pos < 0)
+					return false;
+				std::string outname = filename.substr(0,pos);
 
-				for (int k = 0; k < match_num; k++)
+				char ch[24];
+				sprintf(ch,"_match%02d.mat",++idx);	
+				outname += std::string(ch);
+				std::ofstream fout(outname);
+
+				if(!fout.is_open())
+					continue;
+				
+				pos = m_strimgList[i].find("/");
+				std::string img1,img2;
+				if(pos > 0)
 				{
-					fp<<buff[k].first<<" "<<buff[k].second<<std::endl;
+					img1 = m_strimgList[i].substr(pos+1);
+					img2 = m_strimgList[j].substr(pos+1);
 				}
+
+				fout <<img1<<" "<<img2<<" "<<_matches.size()<<std::endl;
+				writeSiftMatch(fout,_matches);
+				fout.close();
 			}
+		return true;
+	}
+	//Read the .sift files in C.WU's BINARY format
+	bool SIFT::readSiftFeature(std::ifstream &fin , std::vector<SiftGPU::SiftKeypoint>& keys,std::vector<float>& descs)
+	{
+		char ch[256];
+		
+		fin.read(ch,sizeof(int)*5);
+		char name[5]={};
+		memcpy(name,ch,4);
+		
+		char version[5] = {};
+		memcpy(version,ch+4,4);
+
+		int npoint = 0 , n = 0 , dim = 0;
+		memcpy(&npoint, ch+8, 4);
+		memcpy(&n, ch+12, 4);
+		memcpy(&dim, ch+16, 4);
+		//npoint = (ch[11]<<24) + (ch[10]<<16) + (ch[9]<<8) + ch[8];
+		//n = (ch[15]<<24) + (ch[14]<<16) + (ch[13]<<8) + ch[12];
+		//dim = (ch[19]<<24) + (ch[18]<<16) + (ch[17]<<8) + ch[16];
+		printf("%s,%s,%d,%d,%d\n",name,version,npoint,n,dim);
+
+		if(n != 5 || dim != 128)
+			return false;
+
+		keys.resize(npoint);
+		descs.resize(npoint*dim);
+		//keyPoint
+		for (int i=0; i < npoint; i++)
+		{
+			fin.read(ch,sizeof(float)*5);
+			float x,y,scale,orientation;
+			unsigned char color[4];
+			memcpy(&x,ch,4);
+			memcpy(&y,ch+4,4);
+			memcpy(color,ch+8,4);
+			memcpy(&scale,ch+12,4);
+			memcpy(&orientation,ch+16,4);
+			if(i < 5 )
+			{
+				printf("%d,%d,%d",int(color[0]),int(color[1]),int(color[2]));
+				printf("\t%f,\t%f,\t%f,\t%f\n",x,y,scale,orientation);
+			}
+
+			keys[i].x = x;
+			keys[i].y = y;
+			keys[i].s = scale;
+			keys[i].o = orientation;
+		}
+
+		std::vector<float>::iterator iter = descs.begin();
+		
+		for(int i =0; i < npoint && iter != descs.end(); i++)
+		{			
+			fin.read(ch,dim);
+			std::vector<float> _feature(dim);
+			double _fsum = 0;
+			for(int j = 0; j < dim; j++)
+			{
+				uchar c = (unsigned char)ch[j];
+				_feature[j] = (float)c;
+
+				_fsum += _feature[j]*_feature[j];
+			}
+			_fsum = sqrtf(_fsum);
+ 			printf("%f \n",_fsum);
+
+			for(int j = 0; j < dim && iter != descs.end(); j++)
+			{
+				_feature[j] = _feature[j]*512/_fsum;
+				*iter = _feature[j];
+				++iter;
+				//printf("%d, ",(int)_feature[j]);
+			}
+			printf("\n");
+		}
+
+		fin.read(ch,sizeof(int));
+		int get_eof;
+		memcpy(&get_eof,ch,4);
+		int eof_marker = (0xff+('E'<<8)+('O'<<16)+('F'<<24));
+
+		printf("%d,%d\n",get_eof,eof_marker);
+
+		return true;
+	}
+	//Write the .sift files in C.WU's BINARY format
+	bool SIFT::writeSiftFeature(std::ofstream &fp , std::vector<SiftGPU::SiftKeypoint> keys,std::vector<float> descs)
+	{
+		char name[5] = "SIFT";
+		char version[5] = "v4.0";
+		//int name = (int)('S'+ ('I'<<8)+('F'<<16)+('T'<<24));
+		//int version = (int)('V'+('4'<<8)+('.'<<16)+('0'<<24));
+		//(int)(0xff+('E'<<8)+('O'<<16)+('F'<<24));
+		char eof_marker[4] = "EOF";
+			
+		int npoint = keys.size();
+		int n = 5,dim = 128;
+		char ch[256];
+		memcpy(ch,name,4);
+		memcpy(ch+4,version,4);
+		memcpy(ch+8,&npoint,4);
+		memcpy(ch+12,&n,4);
+		memcpy(ch+16,&dim,4);
+
+		fp.write(ch,4*5);
+
+		for (int i = 0; i < npoint; i++)
+		{
+			SiftGPU::SiftKeypoint p = keys[i];
+
+			//std::cout<<p.x<<" "<<p.y<<" "<<p.s<<" "<<p.o<<std::endl;
+			unsigned char color[4] = {255,255,255};
+			char ch[256];
+			memcpy(ch,&p.x,4);
+			memcpy(ch+4,&p.y,4);
+			memcpy(ch+8,color,4);
+			memcpy(ch+12,&p.s,4);
+			memcpy(ch+16,&p.o,4);
+
+			fp.write(ch,sizeof(float)*5);
+		}
+
+		int step = 0;
+		int maxData = 0;
+		int minData = 127;
+		for (int i = 0; i < npoint; i++)
+		{
+			std::vector<float> _feature(dim);
+			double _fsum = 0.0;
+			for (int j=0; j < dim; j++)
+			{
+				int position = i*dim + j;
+				float f = descs[position];
+				_feature[j] = f;
+				_fsum += f*f;
+			}
+
+			_fsum = sqrt(_fsum);
+			//printf("%lf\n",_fsum);
+			char *_chfeature = new char[dim];
+
+			for (int j=0; j < dim; j++)
+			{
+				_feature[j] = _feature[j]*512/_fsum;
+				int tmp = (int)(0.5 + _feature[j]) - 128;
+				_chfeature[j] = (char)tmp;
+				if(tmp > maxData) maxData = tmp;
+				if(tmp < minData) minData = tmp;
+				//printf("%d, ",tmp);
+			}			
+			std::cout<<std::endl;
+
+			fp.write(_chfeature,sizeof(char)*dim);
+
+			delete [] _chfeature;
+		}
+
+		printf("%d,%d\n",maxData,minData);
+		return true;
+	}	
+	//Write the .sift files in C.WU's BINARY format
+	bool SIFT::writeSiftFeature(std::vector<std::vector<SiftGPU::SiftKeypoint> > keys,std::vector<std::vector<float> > descs)
+	{
+		assert(keys.size() == m_nimage && keys.size() == descs.size());
+		
+		for(int i=0; i < m_nimage;i++)	
+		{
+			std::string filename = m_strimgList[i];
+			int pos = filename.rfind(".");
+			if(pos < 0)
+				return false;
+			std::string outname = filename.substr(0,pos) + ".sift";
+			std::cout<<filename<<" "<<pos<<" "<<outname<<std::endl;
+			std::ofstream fp(outname,std::ios_base::binary);
+			if(!fp.is_open())
+				return false;
+			
+			writeSiftFeature(fp,keys[i],descs[i]);
+
+			fp.close();
+		}
+
+		return true;
 	}
 
-	void SIFT::readSiftMatch(std::ifstream &fin, std::vector<std::vector<std::pair<int ,int >>>& match_buffer)
+	//Write the .sift files in Lowe's ASCII format
+	bool SIFT::writeLoweSiftFeature(std::ofstream &fp , std::vector<SiftGPU::SiftKeypoint> keys,std::vector<float > descs)
 	{
-		int i,j,match_num;
+		int npoint = keys.size();
+		int dim = 128;
 
-		while( fin >> i >> j >> match_num )
+		int ndes = descs.size();
+		assert(ndes == dim*npoint);
+
+		fp << npoint<<" "<< dim <<std::endl;
+		// write echo keypoint feature;
+		// y,x,scale,orientation;
+		// 128-d descriptors , 20s each line
+
+		for (int i = 0 ; i < npoint; ++i)
 		{
-			std::cout<<i<<" "<<j<<" "<<match_num<<std::endl;
-			int i_idx, j_idx;
+			SiftGPU::SiftKeypoint p = keys[i];
+			fp << (p.y -0.5)<<" "<<(p.x - 0.5 )<< " "<<p.s<<" "<< -p.o<<std::endl;
 
-			std::vector<std::pair<int ,int >> buff;
-//			buff.resize(match_num);
-
-			for(int k=0; k<match_num; k++)
+			std::vector<float> _descriptors(dim);
+			double _dsum = 0.0;
+			for (int j= 0; j < dim; j++)
 			{
-				fin >> i_idx >> j_idx;
-				std::cout<< i_idx <<" "<<j_idx<<std::endl;
+				int position = i*dim + j;
+				_descriptors[j] = descs[position];
 
-				buff.push_back(std::make_pair(i_idx,j_idx));
+				_dsum += descs[position]*descs[position];
 			}
 
-			match_buffer.push_back(buff);
+			_dsum = sqrt(_dsum);
+
+			for (int j= 0; j < dim; j++)
+			{
+				int _descriptor = (int)(512*_descriptors[j]/_dsum);
+				if(j != 0 && j % 20 == 0)
+					fp<<std::endl;
+				
+				fp <<" "<<_descriptor;
+			}
+
+			fp<<std::endl;
 		}
+		return true;
+	}
+	//Write the .sift files in Lowe's ASCII format
+	bool SIFT::writeLoweSiftFeature(std::vector<std::vector<SiftGPU::SiftKeypoint> > keys,std::vector<std::vector<float> > descs)
+	{
+		assert(keys.size() == m_nimage && keys.size() == descs.size());
+
+		for(int i=0; i < m_nimage;i++)	
+		{
+			std::string filename = m_strimgList[i];
+			int pos = filename.rfind(".");
+			if(pos < 0)
+				return false;
+			std::string outname = filename.substr(0,pos) + ".sift";
+			std::cout<<filename<<" "<<pos<<" "<<outname<<std::endl;
+			std::ofstream fp(outname);
+			if(!fp.is_open())
+				return false;
+
+			writeLoweSiftFeature(fp,keys[i],descs[i]);
+
+			fp.close();
+		}
+		return true;
 	}
 
 	void SIFT::drawSiftMatch(cv::Mat src1,std::vector<SiftGPU::SiftKeypoint> keys1, cv::Mat src2, std::vector<SiftGPU::SiftKeypoint> keys2, int match_buf[][2] , int num_match)

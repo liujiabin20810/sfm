@@ -32,23 +32,35 @@ namespace bundler
 
 			void operator()(std::vector<std::vector<SiftKeypoint>>& keypoints, std::vector<std::vector<float>>& descriptors) const;
 
-			std::vector<int> match(std::vector<SiftGPU::SiftKeypoint> queryKeypoints, std::vector<SiftGPU::SiftKeypoint> trainedKeypoints,
-				std::vector<float> queryDescriptors,std::vector<float> trainedDescriptors,int match_buffer[][2] );
+// 			std::vector<int> match(std::vector<SiftGPU::SiftKeypoint> queryKeypoints, std::vector<SiftGPU::SiftKeypoint> trainedKeypoints,
+// 				std::vector<float> queryDescriptors,std::vector<float> trainedDescriptors,int match_buffer[][2] );
 
 			int match(std::vector<SiftGPU::SiftKeypoint> queryKeypoints, std::vector<SiftGPU::SiftKeypoint> trainedKeypoints,
 				std::vector<float> queryDescriptors, std::vector<float> trainedDescriptors, int match_buffer[][2],cv::Mat &F);
 
-			std::vector<int> match(std::vector<std::vector<SiftKeypoint>> Keypoints,std::vector<std::vector<float>> Descriptors,
-				std::vector<std::vector<std::pair<int ,int >>>& match_buffer);
-
+// 			std::vector<int> match(std::vector<std::vector<SiftKeypoint> > Keypoints,std::vector<std::vector<float>> Descriptors,
+// 				std::vector<std::vector<std::pair<int ,int > > >& match_buffer);
 
 			void drawSiftMatch(cv::Mat src1,std::vector<SiftGPU::SiftKeypoint> keys1, cv::Mat src2, std::vector<SiftGPU::SiftKeypoint> keys2, 
 			int match_buf[][2] , int num_match);
 
-			void writeSiftMatch(std::ofstream &fp, std::vector<std::vector<std::pair<int ,int >>>& match_buffer);
+			bool writeSiftMatch(std::ofstream &fp,std::vector<cv::DMatch> & matches);
+
+			bool writeSiftMatch(std::map<std::pair<int, int>, std::vector<cv::DMatch> >& matches_matrix);
 			
-			void readSiftMatch(std::ifstream &fp, std::vector<std::vector<std::pair<int ,int >>>& match_buffer);
+			void readSiftMatch(std::ifstream &fin, std::vector<std::vector<std::pair<int ,int > > >& match_buffer);
+			// write the .sift in  Changchang Wu's Binary format
+			bool writeSiftFeature(std::ofstream &fp , std::vector<SiftGPU::SiftKeypoint> keys,std::vector<float > descs);
+			// write the .sift in  Changchang Wu's Binary format
+			bool writeSiftFeature(std::vector<std::vector<SiftGPU::SiftKeypoint> > keys,std::vector<std::vector<float> > descs);
 			
+			//Write the .sift files in Lowe's ASCII format
+			bool writeLoweSiftFeature(std::ofstream &fp , std::vector<SiftGPU::SiftKeypoint> keys,std::vector<float > descs);
+			//Write the .sift files in Lowe's ASCII format
+			bool writeLoweSiftFeature(std::vector<std::vector<SiftGPU::SiftKeypoint> > keys,std::vector<std::vector<float> > descs);
+
+			bool readSiftFeature(std::ifstream &fin , std::vector<SiftGPU::SiftKeypoint>& keys,std::vector<float>& descs);
+
 			void convertSiftKeypoint(std::vector<SiftKeypoint> keys, std::vector<cv::Point2f>& points);
 			
 			void convertSiftKeypoint(std::vector<SiftKeypoint> keys, std::vector<cv::KeyPoint>& points);
@@ -64,7 +76,7 @@ namespace bundler
 
 			int m_nimage ;
 			const char* m_imgList[50];
-		
+			std::vector<std::string> m_strimgList;
 	};
 }
 

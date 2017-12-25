@@ -1,26 +1,131 @@
-﻿生成启动时间为 2017/11/14 18:42:02。
-     1>项目“E:\3D\Photograph\SFM\wokspace\Bundler\Bundler\Bundler.vcxproj”在节点 2 上(build 个目标)。
+﻿生成启动时间为 2017/12/25 17:13:23。
+     1>项目“E:\3D\Photograph\GIT\VSFM\sfm\Bundler\Bundler.vcxproj”在节点 2 上(build 个目标)。
      1>InitializeBuildStatus:
-         正在创建“Release\Bundler.unsuccessfulbuild”，因为已指定“AlwaysCreate”。
+         正在对“Release\Bundler.unsuccessfulbuild”执行 Touch 任务。
        ClCompile:
          所有输出均为最新。
-         d:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\bin\CL.exe /c /I"D:\Program Files (x86)\glew-1.13.0\include" /I"D:\Program Files (x86)\opencv249\opencv\build\include" /IE:\3D\Photograph\SFM\wokspace\Bundler\siftgpu /IE:\3D\Photograph\SFM\wokspace\Bundler\SSBA /Zi /nologo /W3 /WX- /O2 /Oi /Oy- /GL /D WIN32 /D NDEBUG /D _CONSOLE /D _MBCS /Gm- /EHsc /MD /GS /Gy /fp:precise /Zc:wchar_t /Zc:forScope /openmp- /Fo"Release\\" /Fd"Release\vc100.pdb" /Gd /TP /analyze- /errorReport:prompt MultiCameraPnP.cpp
+         D:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\bin\CL.exe /c /IE:\3D\Photograph\GIT\VSFM\sfm\siftgpu /ID:\0penCV249\include /IE:\3D\Photograph\GIT\VSFM\sfm\Bundler\3rdparty\pba /IE:\3D\Photograph\GIT\VSFM\sfm\Bundler\3rdparty\solvePnP /IE:\3D\Photograph\GIT\VSFM\sfm\Bundler\3rdparty\glew\include /Zi /nologo /W3 /WX- /O2 /Oi /Oy- /GL /D WIN32 /D NDEBUG /D _CONSOLE /D _MBCS /Gm- /EHsc /MD /GS /Gy /fp:precise /Zc:wchar_t /Zc:forScope /openmp- /Yc"StdAfx.h" /Fp"Release\Bundler.pch" /Fo"Release\\" /Fd"Release\vc100.pdb" /Gd /TP /analyze- /errorReport:prompt stdafx.cpp
+         stdafx.cpp
+         所有输出均为最新。
+         D:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\bin\CL.exe /c /IE:\3D\Photograph\GIT\VSFM\sfm\siftgpu /ID:\0penCV249\include /IE:\3D\Photograph\GIT\VSFM\sfm\Bundler\3rdparty\pba /IE:\3D\Photograph\GIT\VSFM\sfm\Bundler\3rdparty\solvePnP /IE:\3D\Photograph\GIT\VSFM\sfm\Bundler\3rdparty\glew\include /Zi /nologo /W3 /WX- /O2 /Oi /Oy- /GL /D WIN32 /D NDEBUG /D _CONSOLE /D _MBCS /Gm- /EHsc /MD /GS /Gy /fp:precise /Zc:wchar_t /Zc:forScope /openmp- /Fo"Release\\" /Fd"Release\vc100.pdb" /Gd /TP /analyze- /errorReport:prompt ..\siftgpu\SIFTGPU.cpp BundleAdjuster.cpp Bundler.cpp FeatureMatcher.cpp MatchTracks.cpp MultiCameraPnP.cpp
+         SIFTGPU.cpp
+         BundleAdjuster.cpp
+         Bundler.cpp
+     1>e:\3d\photograph\git\vsfm\sfm\bundler\MatchTracks.h(239): warning C4172: 返回局部变量或临时变量的地址
+         FeatureMatcher.cpp
+         MatchTracks.cpp
+     1>e:\3d\photograph\git\vsfm\sfm\bundler\MatchTracks.h(239): warning C4172: 返回局部变量或临时变量的地址
+     1>MatchTracks.cpp(69): warning C4996: 'fscanf': This function or variable may be unsafe. Consider using fscanf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+                 D:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\include\stdio.h(253) : 参见“fscanf”的声明
+     1>MatchTracks.cpp(77): warning C4996: 'fscanf': This function or variable may be unsafe. Consider using fscanf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+                 D:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\include\stdio.h(253) : 参见“fscanf”的声明
+     1>MatchTracks.cpp(81): warning C4996: 'fscanf': This function or variable may be unsafe. Consider using fscanf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+                 D:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\include\stdio.h(253) : 参见“fscanf”的声明
+     1>MatchTracks.cpp(82): warning C4996: 'fscanf': This function or variable may be unsafe. Consider using fscanf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+                 D:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\include\stdio.h(253) : 参见“fscanf”的声明
+     1>MatchTracks.cpp(111): warning C4996: 'fscanf': This function or variable may be unsafe. Consider using fscanf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+                 D:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\include\stdio.h(253) : 参见“fscanf”的声明
+     1>MatchTracks.cpp(116): warning C4996: 'fscanf': This function or variable may be unsafe. Consider using fscanf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+                 D:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\include\stdio.h(253) : 参见“fscanf”的声明
+     1>MatchTracks.cpp(213): warning C4018: “<”: 有符号/无符号不匹配
+     1>MatchTracks.cpp(413): warning C4018: “<”: 有符号/无符号不匹配
+     1>MatchTracks.cpp(428): warning C4018: “<”: 有符号/无符号不匹配
+     1>MatchTracks.cpp(454): warning C4018: “<”: 有符号/无符号不匹配
+     1>MatchTracks.cpp(808): warning C4018: “<”: 有符号/无符号不匹配
+     1>MatchTracks.cpp(917): warning C4996: 'fopen': This function or variable may be unsafe. Consider using fopen_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+                 D:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\include\stdio.h(234) : 参见“fopen”的声明
+     1>MatchTracks.cpp(984): warning C4996: 'fopen': This function or variable may be unsafe. Consider using fopen_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+                 D:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\include\stdio.h(234) : 参见“fopen”的声明
+     1>MatchTracks.cpp(988): warning C4996: 'fscanf': This function or variable may be unsafe. Consider using fscanf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+                 D:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\include\stdio.h(253) : 参见“fscanf”的声明
+     1>MatchTracks.cpp(999): warning C4996: 'fscanf': This function or variable may be unsafe. Consider using fscanf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+                 D:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\include\stdio.h(253) : 参见“fscanf”的声明
+     1>MatchTracks.cpp(1004): warning C4996: 'fscanf': This function or variable may be unsafe. Consider using fscanf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+                 D:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\include\stdio.h(253) : 参见“fscanf”的声明
+     1>MatchTracks.cpp(1017): warning C4996: 'fscanf': This function or variable may be unsafe. Consider using fscanf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+                 D:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\include\stdio.h(253) : 参见“fscanf”的声明
+     1>MatchTracks.cpp(1022): warning C4996: 'fscanf': This function or variable may be unsafe. Consider using fscanf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+                 D:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\include\stdio.h(253) : 参见“fscanf”的声明
+     1>MatchTracks.cpp(1087): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+                 D:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\include\stdio.h(371) : 参见“sprintf”的声明
+     1>MatchTracks.cpp(1088): warning C4996: 'fopen': This function or variable may be unsafe. Consider using fopen_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+                 D:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\include\stdio.h(234) : 参见“fopen”的声明
+     1>MatchTracks.cpp(1090): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+                 D:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\include\stdio.h(371) : 参见“sprintf”的声明
+     1>MatchTracks.cpp(1091): warning C4996: 'fopen': This function or variable may be unsafe. Consider using fopen_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+                 D:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\include\stdio.h(234) : 参见“fopen”的声明
+     1>MatchTracks.cpp(1280): warning C4244: “=”: 从“double”转换到“float”，可能丢失数据
+     1>MatchTracks.cpp(1281): warning C4244: “=”: 从“double”转换到“float”，可能丢失数据
+     1>MatchTracks.cpp(1361): warning C4018: “<”: 有符号/无符号不匹配
+     1>MatchTracks.cpp(1374): warning C4018: “<”: 有符号/无符号不匹配
+     1>MatchTracks.cpp(1385): warning C4018: “<”: 有符号/无符号不匹配
+     1>MatchTracks.cpp(1429): warning C4018: “<”: 有符号/无符号不匹配
+     1>MatchTracks.cpp(1471): warning C4996: 'fopen': This function or variable may be unsafe. Consider using fopen_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+                 D:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\include\stdio.h(234) : 参见“fopen”的声明
          MultiCameraPnP.cpp
-     1>MultiCameraPnP.cpp(301): warning C4244: “参数”: 从“double”转换到“float”，可能丢失数据
-     1>MultiCameraPnP.cpp(301): warning C4244: “参数”: 从“double”转换到“float”，可能丢失数据
-     1>MultiCameraPnP.cpp(351): warning C4018: “<”: 有符号/无符号不匹配
-     1>MultiCameraPnP.cpp(370): warning C4244: “参数”: 从“double”转换到“float”，可能丢失数据
-     1>MultiCameraPnP.cpp(370): warning C4244: “参数”: 从“double”转换到“float”，可能丢失数据
-     1>MultiCameraPnP.cpp(600): warning C4244: “参数”: 从“double”转换到“float”，可能丢失数据
-     1>MultiCameraPnP.cpp(658): warning C4018: “<”: 有符号/无符号不匹配
-     1>MultiCameraPnP.cpp(739): warning C4244: “参数”: 从“double”转换到“int”，可能丢失数据
-     1>MultiCameraPnP.cpp(749): warning C4018: “<”: 有符号/无符号不匹配
-     1>MultiCameraPnP.cpp(769): warning C4244: “参数”: 从“double”转换到“float”，可能丢失数据
-     1>MultiCameraPnP.cpp(801): warning C4244: “=”: 从“double”转换到“float”，可能丢失数据
-     1>MultiCameraPnP.cpp(802): warning C4244: “=”: 从“double”转换到“float”，可能丢失数据
-     1>MultiCameraPnP.cpp(803): warning C4244: “=”: 从“double”转换到“float”，可能丢失数据
+     1>e:\3d\photograph\git\vsfm\sfm\bundler\MatchTracks.h(239): warning C4172: 返回局部变量或临时变量的地址
+     1>MultiCameraPnP.cpp(246): warning C4244: “=”: 从“double”转换到“float”，可能丢失数据
+     1>MultiCameraPnP.cpp(248): warning C4244: “=”: 从“double”转换到“float”，可能丢失数据
+     1>MultiCameraPnP.cpp(249): warning C4244: “=”: 从“double”转换到“float”，可能丢失数据
+     1>MultiCameraPnP.cpp(251): warning C4244: “=”: 从“double”转换到“float”，可能丢失数据
+     1>MultiCameraPnP.cpp(323): warning C4244: “参数”: 从“double”转换到“float”，可能丢失数据
+     1>MultiCameraPnP.cpp(323): warning C4244: “参数”: 从“double”转换到“float”，可能丢失数据
+     1>MultiCameraPnP.cpp(525): warning C4018: “<”: 有符号/无符号不匹配
+     1>MultiCameraPnP.cpp(563): warning C4244: “参数”: 从“double”转换到“float”，可能丢失数据
+     1>MultiCameraPnP.cpp(563): warning C4244: “参数”: 从“double”转换到“float”，可能丢失数据
+     1>MultiCameraPnP.cpp(604): warning C4018: “<”: 有符号/无符号不匹配
+     1>MultiCameraPnP.cpp(656): warning C4018: “<”: 有符号/无符号不匹配
+     1>MultiCameraPnP.cpp(717): warning C4018: “<”: 有符号/无符号不匹配
+     1>MultiCameraPnP.cpp(737): warning C4244: “参数”: 从“double”转换到“float”，可能丢失数据
+     1>MultiCameraPnP.cpp(737): warning C4244: “参数”: 从“double”转换到“float”，可能丢失数据
+     1>MultiCameraPnP.cpp(780): warning C4018: “<”: 有符号/无符号不匹配
+     1>MultiCameraPnP.cpp(828): warning C4018: “<”: 有符号/无符号不匹配
+     1>MultiCameraPnP.cpp(889): warning C4018: “<”: 有符号/无符号不匹配
+     1>MultiCameraPnP.cpp(923): warning C4018: “<”: 有符号/无符号不匹配
+     1>MultiCameraPnP.cpp(929): warning C4018: “<”: 有符号/无符号不匹配
+     1>MultiCameraPnP.cpp(957): warning C4018: “<”: 有符号/无符号不匹配
+     1>MultiCameraPnP.cpp(1192): warning C4244: “参数”: 从“double”转换到“float”，可能丢失数据
+     1>MultiCameraPnP.cpp(1246): warning C4244: “初始化”: 从“double”转换到“int”，可能丢失数据
+     1>MultiCameraPnP.cpp(1543): warning C4018: “<”: 有符号/无符号不匹配
+     1>MultiCameraPnP.cpp(1630): warning C4018: “<”: 有符号/无符号不匹配
+     1>MultiCameraPnP.cpp(1636): warning C4018: “<”: 有符号/无符号不匹配
+     1>MultiCameraPnP.cpp(1653): warning C4018: “<”: 有符号/无符号不匹配
+     1>MultiCameraPnP.cpp(1813): warning C4244: “参数”: 从“double”转换到“float”，可能丢失数据
+     1>MultiCameraPnP.cpp(1813): warning C4244: “参数”: 从“double”转换到“float”，可能丢失数据
+     1>MultiCameraPnP.cpp(1813): warning C4244: “参数”: 从“double”转换到“float”，可能丢失数据
+     1>MultiCameraPnP.cpp(1842): warning C4018: “<”: 有符号/无符号不匹配
+     1>MultiCameraPnP.cpp(1852): warning C4244: “=”: 从“double”转换到“float”，可能丢失数据
+     1>MultiCameraPnP.cpp(1859): warning C4244: “+=”: 从“double”转换到“float”，可能丢失数据
+     1>MultiCameraPnP.cpp(1924): warning C4244: “初始化”: 从“double”转换到“float”，可能丢失数据
+     1>MultiCameraPnP.cpp(1973): warning C4018: “<”: 有符号/无符号不匹配
+     1>MultiCameraPnP.cpp(2031): warning C4244: “=”: 从“double”转换到“float”，可能丢失数据
+     1>MultiCameraPnP.cpp(2032): warning C4244: “=”: 从“double”转换到“float”，可能丢失数据
+     1>MultiCameraPnP.cpp(2033): warning C4244: “=”: 从“double”转换到“float”，可能丢失数据
+     1>MultiCameraPnP.cpp(2115): warning C4244: “=”: 从“double”转换到“float”，可能丢失数据
+     1>MultiCameraPnP.cpp(2116): warning C4244: “=”: 从“double”转换到“float”，可能丢失数据
+     1>MultiCameraPnP.cpp(2117): warning C4244: “=”: 从“double”转换到“float”，可能丢失数据
+     1>MultiCameraPnP.cpp(2123): warning C4018: “<”: 有符号/无符号不匹配
+     1>MultiCameraPnP.cpp(2086): warning C4101: “q”: 未引用的局部变量
+     1>MultiCameraPnP.cpp(2281): warning C4244: “=”: 从“double”转换到“float”，可能丢失数据
+     1>MultiCameraPnP.cpp(2282): warning C4244: “=”: 从“double”转换到“float”，可能丢失数据
+     1>MultiCameraPnP.cpp(2283): warning C4244: “=”: 从“double”转换到“float”，可能丢失数据
+     1>MultiCameraPnP.cpp(2253): warning C4101: “q”: 未引用的局部变量
+     1>e:\3d\photograph\git\vsfm\sfm\bundler\3rdparty\pba\DataInterface.h(284): warning C4244: “=”: 从“double”转换到“float”，可能丢失数据
+                 E:\3D\Photograph\GIT\VSFM\sfm\Bundler\3rdparty\pba\util.h(566): 参见对正在编译的函数 模板 实例化“void CameraT_<FT>::GetCameraCenter<float>(Float [])”的引用
+                 with
+                 [
+                     FT=double,
+                     Float=float
+                 ]
+     1>e:\3d\photograph\git\vsfm\sfm\bundler\3rdparty\pba\DataInterface.h(68): warning C4244: “=”: 从“const double”转换到“float”，可能丢失数据
+                 E:\3D\Photograph\GIT\VSFM\sfm\Bundler\3rdparty\pba\util.h(568): 参见对正在编译的函数 模板 实例化“void CameraT_<FT>::SetCameraT<CameraD>(const CameraX &)”的引用
+                 with
+                 [
+                     FT=float,
+                     CameraX=CameraD
+                 ]
        Link:
-         d:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\bin\link.exe /ERRORREPORT:PROMPT /OUT:"E:\3D\Photograph\SFM\wokspace\Bundler\Release\Bundler.exe" /INCREMENTAL:NO /NOLOGO /LIBPATH:"D:\Program Files (x86)\opencv249\opencv\build\x86\vc10\lib" /LIBPATH:"D:\Program Files (x86)\glew-1.13.0\lib\Release\Win32" /LIBPATH:E:\3D\Photograph\SFM\wokspace\Bundler\siftgpu /LIBPATH:E:\3D\Photograph\SFM\wokspace\Bundler\SSBA\LIB kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /MANIFEST /ManifestFile:"Release\Bundler.exe.intermediate.manifest" /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /DEBUG /PDB:"E:\3D\Photograph\SFM\wokspace\Bundler\Release\Bundler.pdb" /SUBSYSTEM:CONSOLE /OPT:REF /OPT:ICF /LTCG /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:"E:\3D\Photograph\SFM\wokspace\Bundler\Release\Bundler.lib" /MACHINE:X86 Release\SIFTGPU.obj
+         D:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\bin\link.exe /ERRORREPORT:PROMPT /OUT:"E:\3D\Photograph\GIT\VSFM\sfm\Release\Bundler.exe" /INCREMENTAL:NO /NOLOGO /LIBPATH:E:\3D\Photograph\GIT\VSFM\sfm\Bundler\3rdparty\glew\lib\Release\Win32 /LIBPATH:E:\3D\Photograph\GIT\VSFM\sfm\siftgpu /LIBPATH:E:\3D\Photograph\GIT\VSFM\sfm\Bundler\3rdparty\pba /LIBPATH:D:\0penCV249\x86\vc10\lib /LIBPATH:E:\3D\Photograph\GIT\VSFM\sfm\Bundler\3rdparty\solvePnP kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /MANIFEST /ManifestFile:"Release\Bundler.exe.intermediate.manifest" /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /DEBUG /PDB:"E:\3D\Photograph\GIT\VSFM\sfm\Release\Bundler.pdb" /SUBSYSTEM:CONSOLE /OPT:REF /OPT:ICF /LTCG /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:"E:\3D\Photograph\GIT\VSFM\sfm\Release\Bundler.lib" /MACHINE:X86 Release\SIFTGPU.obj
          Release\BundleAdjuster.obj
          Release\Bundler.obj
          Release\FeatureMatcher.obj
@@ -28,16 +133,15 @@
          Release\MultiCameraPnP.obj
          Release\stdafx.obj
          正在生成代码
-     1>e:\3d\photograph\sfm\wokspace\bundler\bundler\matchtracks.cpp(908): warning C4700: 使用了未初始化的局部变量“flag”
          已完成代码的生成
-         Bundler.vcxproj -> E:\3D\Photograph\SFM\wokspace\Bundler\Release\Bundler.exe
+         Bundler.vcxproj -> E:\3D\Photograph\GIT\VSFM\sfm\Release\Bundler.exe
        Manifest:
-         C:\Program Files (x86)\Microsoft SDKs\Windows\v7.0A\bin\mt.exe /nologo /verbose /outputresource:"E:\3D\Photograph\SFM\wokspace\Bundler\Release\Bundler.exe;#1" /manifest Release\Bundler.exe.intermediate.manifest
+         C:\Program Files (x86)\Microsoft SDKs\Windows\v7.0A\bin\mt.exe /nologo /verbose /outputresource:"E:\3D\Photograph\GIT\VSFM\sfm\Release\Bundler.exe;#1" /manifest Release\Bundler.exe.intermediate.manifest
        FinalizeBuildStatus:
          正在删除文件“Release\Bundler.unsuccessfulbuild”。
          正在对“Release\Bundler.lastbuildstate”执行 Touch 任务。
-     1>已完成生成项目“E:\3D\Photograph\SFM\wokspace\Bundler\Bundler\Bundler.vcxproj”(build 个目标)的操作。
+     1>已完成生成项目“E:\3D\Photograph\GIT\VSFM\sfm\Bundler\Bundler.vcxproj”(build 个目标)的操作。
 
 生成成功。
 
-已用时间 00:00:05.62
+已用时间 00:00:09.37

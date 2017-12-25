@@ -3,9 +3,16 @@
 /* Code for processing matches and tracks */
 #include "MatchTracks.h"
 
+#include <opencv2/calib3d/calib3d.hpp>
+
 #include <queue>
 #include <iostream>
 #include <stdio.h>
+
+#define  ransac_stop_support 50
+#define  RANSAC_DIST_THRESHOLD 5
+
+#define  USING_OPENCV
 
 namespace bundler
 {
@@ -28,7 +35,7 @@ namespace bundler
 	}
 
 	/* Return the intersection of two int vectors */
-	std::vector<int> GetVectorIntersection(const std::vector<int> &v1,
+	std::vector<int> MatchTracks::GetVectorIntersection(const std::vector<int> &v1,
 						   const std::vector<int> &v2)
 	{
 		stdext::hash_set<int> seen;
@@ -134,6 +141,16 @@ namespace bundler
 		m_matches_table.RemoveAll();
 	}
 
+	bool MatchTracks::ImagesMatch(int i1, int i2)
+	{
+		return m_matches_table.Contains(GetMatchIndex(i1,i2));
+	}
+
+	void MatchTracks::SetMatch(int i1, int i2)
+	{
+		m_matches_table.SetMatch(GetMatchIndex(i1, i2));
+	}
+
 	bool CompareFirst(const KeypointMatch &k1, const KeypointMatch &k2) 
 	{
 		return (k1.m_idx1 < k2.m_idx1);
@@ -148,12 +165,37 @@ namespace bundler
 		m_matches_table = MatchTable(num_images);
 		RemoveAllMatches();
 
+
 		// m_image_data init
 		m_image_data.resize(num_images);
 
+		//m_images_points = _images_points;
+		for (int i = 0; i < num_images; i++)
+		{
+			std::vector<cv::KeyPoint> points = _images_points[i];
+			int point_num = points.size();
+			m_image_data[i].m_keys.resize(point_num);
+
+			for (int j = 0; j < point_num; j++)
+			{
+				cv::KeyPoint point = points[j];
+
+				float x = point.pt.x, y = point.pt.y;
+				cv::Vec3b _color =  _images[i].ptr<cv::Vec3b>((int)(y+0.5))[(int)(x+0.5)];
+
+				m_image_data[i].m_keys[j] = Keypoint(x, y);
+				m_image_data[i].m_keys[j].m_b = _color[0];
+				m_image_data[i].m_keys[j].m_g = _color[1];
+				m_image_data[i].m_keys[j].m_r = _color[2];
+
+				m_image_data[i].m_keys[j].m_extra = -1;
+			}
+
+		}
+
+
 		m_num_images = num_images;
-		m_matches_matrix = _matches_matrix;
-		m_images_points = _images_points;
+		m_matches_matrix = _matches_matrix;	
 		m_fmatrix = _fmatrix;
 
 		m_images =  _images;
@@ -170,8 +212,8 @@ namespace bundler
 	{
 		for (unsigned int i = 0; i < m_num_images; i++) 
 		{
-			MatchAdjList::iterator iter;
 
+			MatchAdjList::iterator iter;
 			std::vector<unsigned int> remove;
 			for (iter = m_matches_table.Begin(i); iter != m_matches_table.End(i); iter++)
 			{
@@ -179,7 +221,6 @@ namespace bundler
 
 				int num_pruned = 0;
 				// MatchIndex idx = *iter; // GetMatchIndex(i, j);
-
 				std::vector<KeypointMatch> &list = iter->m_match_list;
 
 				/* Unmark keys */
@@ -203,9 +244,9 @@ namespace bundler
 					 } 
 					else 
 					{
-                    /* Mark this key as matched */
-                    // GetKey(j,idx2).m_extra = k;
-                    seen.insert(idx2);
+						/* Mark this key as matched */
+						// GetKey(j,idx2).m_extra = k;
+						 seen.insert(idx2);
 					 }
 				 }
 
@@ -213,7 +254,8 @@ namespace bundler
 				// unsigned int j = iter->second;
 				unsigned int j = iter->m_index; // first;
 
-				printf("[PruneDoubleMatches] Pruned[%d,%d] = %d / %d\n",
+				if(num_pruned > 0 )
+					printf("[PruneDoubleMatches] Pruned[%d,%d] = %d / %d\n",
 					   i, j, num_pruned, num_matches + num_pruned);
 
 				if (num_matches < m_min_num_feat_matches) {
@@ -248,26 +290,22 @@ namespace bundler
 			int i1, i2;
 			i1 = (matrix_iter->first).first;
 			i2 = (matrix_iter->first).second;
-
-			m_matches_table.SetMatch(GetMatchIndex(i1, i2));
-
+			
 			std::vector<cv::DMatch> dmatch = matrix_iter->second;
-
 			std::vector<cv::DMatch>::iterator dmatch_iter = dmatch.begin();
-
 			std::vector<KeypointMatch> matches;
-
 			for(;dmatch_iter != dmatch.end(); ++dmatch_iter )
 			{
 				KeypointMatch m;
 
 				m.m_idx1 = dmatch_iter->queryIdx;
 				m.m_idx2 = dmatch_iter->trainIdx;
-
+				
 				matches.push_back(m);
 			}
 
 			MatchIndex idx = GetMatchIndex(i1, i2);
+			m_matches_table.SetMatch(idx);
 			m_matches_table.GetMatchList(idx) = matches;
 		}
 
@@ -325,20 +363,47 @@ namespace bundler
 		for (unsigned int i = 0; i < num_matches; i++) {
 			unsigned int img1 = matches[i].first;
 			unsigned int img2 = matches[i].second;
-
-			MatchIndex idx = GetMatchIndex(img1, img2);
-			MatchIndex idx_rev = GetMatchIndex(img2, img1);
-			int sz1 = m_matches_table.GetNumMatches(idx);
-			int sz2 = m_matches_table.GetNumMatches(idx_rev); 
-			
-			printf("[MatchListsSymmetric] Match(%d,%d): %d;		Match(%d,%d): %d. \n",img1,img2,sz1,img2,img1,sz2);
-			//std::cout<< "["<<img1<<","<<img2<<"]: "<<sz1<<" ["<<img2<<","<<img1<<"]: "<<sz2<<std::endl;
+			SetMatch(img2, img1);
 		}
+
+		//////////////////////////////////////////////////////////////////////////
+
+// 		for (unsigned int i = 0; i < num_matches; i++) {
+// 			unsigned int img1 = matches[i].first;
+// 			unsigned int img2 = matches[i].second;
+// 
+// 			MatchIndex idx = GetMatchIndex(img1, img2);
+// 			MatchIndex idx_rev = GetMatchIndex(img2, img1);
+// 			int sz1 = m_matches_table.GetNumMatches(idx);
+// 			int sz2 = m_matches_table.GetNumMatches(idx_rev); 
+// 			
+// 			const std::vector<KeypointMatch> &list1 = m_matches_table.GetMatchList(idx);
+// 			const std::vector<KeypointMatch> &list2 = m_matches_table.GetMatchList(idx_rev);
+// 
+// 			if(img1 == 2 && img2 == 3)
+// 			{
+// 				for(int k = 0; k< sz1; k++)
+// 				{
+// 					if(k%50 == 0)
+// 						printf("[%d,%d] ",list1[k].m_idx1,list1[k].m_idx2);
+// 				}
+// 				printf("\n");
+// 				for(int k = 0; k< sz2; k++)
+// 				{
+// 					if(k%50 == 0)
+// 						printf("[%d,%d] ",list2[k].m_idx1,list2[k].m_idx2);
+// 				}
+// 			}
+// 
+// 			printf("[MatchListsSymmetric] Match(%d,%d): %d;		Match(%d,%d): %d. \n",img1,img2,sz1,img2,img1,sz2);
+// 			//std::cout<< "["<<img1<<","<<img2<<"]: "<<sz1<<" ["<<img2<<","<<img1<<"]: "<<sz2<<std::endl;
+// 		}
 
 		matches.clear();
 
 	}
 
+	/* Compute a set of tracks that explain the matches */
 	void MatchTracks::ComputeTracks(int new_image_start)
 	{
 		int num_images = m_num_images;
@@ -353,7 +418,7 @@ namespace bundler
 				continue;
 
 			//std::vector<bool> key_flags;
-			int num_features = m_images_points[i].size();
+			int num_features = m_image_data[i].m_keys.size();
 			m_image_data[i].m_key_flags.resize(num_features);
 
 			//m_key_flags.push_back(key_flags);
@@ -368,6 +433,13 @@ namespace bundler
 				std::vector<KeypointMatch> &list = iter->m_match_list; // iter->second; // m_match_lists[idx];
 				sort(list.begin(), list.end(), CompareFirst);
 				//std::cout<< list[0].m_idx1 <<" "<<list[1].m_idx1<<std::endl;
+#if 0				
+				for (int j = 0; j < list.size(); j++)
+				{
+					std::cout<< list[j].m_idx1<<" ";
+				}
+				std::cout<<std::endl;
+#endif
 			}
 		}
 
@@ -381,15 +453,13 @@ namespace bundler
 
 		for (unsigned int i = 0; i < num_images; i++)
 		{
-			/* If this image has no neighbors, don't worry about its keys */
-			// std::list<unsigned int> &nbrs = m_matches.GetNeighbors(i);
-			// int num_nbrs = (int) nbrs.size();
+			/* If this image has no neighbors, skip it */
 			int num_nbrs = (int) m_matches_table.GetNumNeighbors(i);
 
 			if (num_nbrs == 0)
 				continue;
 
-			int num_features = m_images_points[i].size();
+			int num_features = m_image_data[i].m_keys.size();
 			int pt_unused = 0;
 			int pt_used = 0;
 			for (int j = 0; j < num_features; j++)
@@ -397,6 +467,7 @@ namespace bundler
 				ImageKeyVector features;
 				std::queue<ImageKey> features_queue;
 
+				/* Check if this feature was visited */
 				if (m_image_data[i].m_key_flags[j])
 				{
 					pt_used++;
@@ -406,7 +477,9 @@ namespace bundler
 				int num_touched = touched.size();
 				//std::cout<<"touched size: "<<num_touched<<std::endl;
 
-				//mark which image was markd as true, reset to false
+				// touched[k] mark which image was markd as true, reset to false
+				// It is only valid to same feature point and 
+				// useful to find match_feature point in all adjacent images quickly
 				for (int k = 0; k < num_touched; k++)
 					img_marked[touched[k]] = false;
 				touched.clear();
@@ -509,7 +582,7 @@ namespace bundler
 				}
 			} // for j loop over features(KeyPoints)
 			
-			printf("[%d / %d] KeyPoints .\n",pt_used,pt_unused);
+		  //printf("[%d / %d] KeyPoints .\n",pt_used,pt_unused);
 		} // for i loop over images
 
 
@@ -525,14 +598,12 @@ namespace bundler
 
 		/* Clear match lists */
 		printf("[ComputeTracks] Clearing match lists...\n");
-		fflush(stdout);
-	
-		//RemoveAllMatches();
+		fflush(stdout);	
+		RemoveAllMatches();
 
 		/* Create the new consistent match lists */
 		printf("[ComputeTracks] Creating consistent match lists...\n");
 		fflush(stdout);
-
 		int num_pts = pt_idx;
 
 		for(int i = 0 ; i < num_pts; i++)
@@ -551,17 +622,17 @@ namespace bundler
 
 		}
 
-		for(int i = 0;i < m_num_images; i++)
-		{
-			std::vector<int> tracks = m_image_data[i].m_visible_points;
-			std::cout<<"image tracks "<<i<<" : ";
-			for(int j = 0; j <tracks.size(); j++ )
-			{
-				std::cout<<tracks[j]<<" ";
-			}
+		//for(int i = 0;i < m_num_images; i++)
+		//{
+		//	std::vector<int> tracks = m_image_data[i].m_visible_points;
+		//	std::cout<<"image tracks "<<i<<" : ";
+		//	for(int j = 0; j <tracks.size(); j++ )
+		//	{
+		//		std::cout<<tracks[j]<<" ";
+		//	}
 
-			std::cout<<std::endl;
-		}
+		//	std::cout<<std::endl;
+		//}
 
 		/* Save the tracks */
 		m_track_data = tracks;
@@ -684,10 +755,32 @@ namespace bundler
 		}
 	}
 
+	void MatchTracks::SetTracks(int image)
+	{
+		printf("[SetTracks] Setting tracks for image %d...\n", image);
+
+		ImageData& img_data = m_image_data[image];
+
+		int num_tracks = img_data.m_visible_points.size();
+
+		for(int i=0; i < num_tracks; i++)
+		{
+			int tr = img_data.m_visible_points[i];
+			int key = img_data.m_visible_keys[i];
+
+			 assert(key < (int) img_data.m_keys.size());
+
+			 img_data.m_keys[key].m_track = tr;
+		}
+	}
+
 	cv::Mat MatchTracks::drawImageMatches(int img1, int img2)
 	{
-		cv::Mat image_l = m_images[img1];
-		cv::Mat image_r = m_images[img2];
+		int max_index = img1 > img2 ? img1 : img2;
+		int min_index = img1 < img2 ? img1 : img2;
+
+		cv::Mat image_l = m_images[min_index];
+		cv::Mat image_r = m_images[max_index];
 
 		assert(image_l.type() == image_r.type());
 		int totalCols = image_l.cols + image_r.cols;
@@ -703,60 +796,55 @@ namespace bundler
 		submat = drawImage(cv::Rect(image_l.cols,0,image_r.cols,image_r.rows));
 		image_r.copyTo(submat);
 
-		int max_index = img1 > img2 ? img1 : img2;
-		int min_index = img1 < img2 ? img1 : img2;
-
-		std::vector<cv::KeyPoint> keypoint_l = m_images_points[min_index];
-		std::vector<cv::KeyPoint> keypoint_r = m_images_points[max_index];
-
-		ImageData im_data1 = m_image_data[min_index];
-		ImageData im_data2 = m_image_data[max_index];
+		std::vector<Keypoint> keypoint_l = m_image_data[min_index].m_keys;
+		std::vector<Keypoint> keypoint_r = m_image_data[max_index].m_keys;
 
 		MatchIndex idx = GetMatchIndex(min_index,max_index);
 
-		std::vector<KeypointMatch>& matchList = m_matches_table.GetMatchList(idx);
+		SetMatchesFromTracks(min_index, max_index);
 
-		for(int i=0; i < matchList.size(); i++)
+		std::vector<KeypointMatch>& list = m_matches_table.GetMatchList(idx);
+
+		for(int i=0; i < list.size(); i++)
 		{
-			cv::Point2f pt1 = keypoint_l[matchList[i].m_idx1].pt;
-			cv::Point2f pt2 = keypoint_r[matchList[i].m_idx2].pt;
+			cv::Point2f pt1 = cv::Point2f(keypoint_l[list[i].m_idx1].m_x,keypoint_l[list[i].m_idx1].m_y);
+			cv::Point2f pt2 = cv::Point2f(keypoint_r[list[i].m_idx2].m_x,keypoint_r[list[i].m_idx2].m_y);
 
 			pt2.x += image_l.cols;
 
 			cv::line(drawImage,pt1,pt2,cv::Scalar(0,0,255),1);
 		}
 
+		m_matches_table.ClearMatch(idx);
+
 		return drawImage;
 	}
-
 
 	void MatchTracks::ComputeGeometricConstraints(bool overwrite, 
 				     int new_image_start)
 	{
 		int num_images = m_num_images;
 		
-		const char *filename = "constraints.txt";
-		if (!overwrite)
-		{
-			
-			FILE *f = fopen(filename, "r");
-
-			if (f != NULL)
-			{
-				ReadGeometricConstraints(filename);
-				fclose(f);
-				SetMatchesFromTracks();
-
-				return;
-			}
-		}
-
+// 		const char *filename = "constraints.txt";
+// 		if (!overwrite)
+// 		{
+// 			
+// 			FILE *f = fopen(filename, "r");
+// 			if (f != NULL)
+// 			{
+// 				ReadGeometricConstraints(filename);
+// 				fclose(f);
+// 
+// 				return;
+// 			}
+// 		}
 		CreateMatchTable();
 
 		if(num_images < 40000)
 			WriteMatchTable(".prune");
 
-		ComputeEpipolarGeometry(new_image_start);
+		//ComputeEpipolarGeometry(new_image_start);
+		ComputeTransform();
 
 		MakeMatchListsSymmetric();
 
@@ -764,42 +852,63 @@ namespace bundler
             WriteMatchTable(".ransac");
 
 		ComputeTracks(new_image_start);
-		RemoveAllMatches();
 
 // set MatchTable with tracks
-#if 0
-        /* Set match flags */
-        int num_tracks = (int) m_track_data.size();
-        for (int i = 0; i < num_tracks; i++) {
-            TrackData &track = m_track_data[i];
-            int num_views = (int) track.m_views.size();
 
-            for (int j = 0; j < num_views - 1; j++) {
-                int img1 = track.m_views[j].first;
-				int img_index1 = track.m_views[j].second;
+#if 1
+		/* Set match flags */
+		int num_tracks = (int) m_track_data.size();
+		for (int i = 0; i < num_tracks; i++) {
+			TrackData &track = m_track_data[i];
+			int num_views = (int) track.m_views.size();
 
-                assert(img1 >= 0 && img1 < num_images);
+			for (int j = 0; j < num_views; j++) {
+				int img1 = track.m_views[j].first;
 
-                for (int k = j+1; k < num_views; k++) {
-                    int img2 = track.m_views[k].first;
-					int img_index2 = track.m_views[k].second;
+				assert(img1 >= 0 && img1 < num_images);
 
-                    assert(img2 >= 0 && img2 < num_images);
-                    
-                    m_matches_table.SetMatch(GetMatchIndex(img1,img2));
-					m_matches_table.AddMatch(GetMatchIndex(img1,img2),KeypointMatch(img_index1,img_index2));
-                    m_matches_table.SetMatch(GetMatchIndex(img2,img1));
-					m_matches_table.AddMatch(GetMatchIndex(img2,img1),KeypointMatch(img_index2,img_index1));
-                }
-            }
-        }
+				for (int k = j+1; k < num_views; k++) {
+					int img2 = track.m_views[k].first;
+
+					assert(img2 >= 0 && img2 < num_images);
+
+					SetMatch(img1, img2);
+					SetMatch(img2, img1);
+				}
+			}
+		}
+#endif
+
+//         /* Set match flags */
+//         int num_tracks = (int) m_track_data.size();
+//         for (int i = 0; i < num_tracks; i++) {
+//             TrackData &track = m_track_data[i];
+//             int num_views = (int) track.m_views.size();
+// 
+//             for (int j = 0; j < num_views - 1; j++) {
+//                 int img1 = track.m_views[j].first;
+// 				int img_index1 = track.m_views[j].second;
+// 
+//                 assert(img1 >= 0 && img1 < num_images);
+// 
+//                 for (int k = j+1; k < num_views; k++) {
+//                     int img2 = track.m_views[k].first;
+// 					int img_index2 = track.m_views[k].second;
+// 
+//                     assert(img2 >= 0 && img2 < num_images);
+//                     
+//                     m_matches_table.SetMatch(GetMatchIndex(img1,img2));
+// 					m_matches_table.AddMatch(GetMatchIndex(img1,img2),KeypointMatch(img_index1,img_index2));
+//                     m_matches_table.SetMatch(GetMatchIndex(img2,img1));
+// 					m_matches_table.AddMatch(GetMatchIndex(img2,img1),KeypointMatch(img_index2,img_index1));
+//                 }
+//             }
+//         }
 
 		if(num_images < 40000)
             WriteMatchTable(".corresp");
-#endif
-		SetMatchesFromTracks();
 
-		WriteGeometricConstraints(filename);
+		//WriteGeometricConstraints(filename);
 
 	}
 
@@ -1023,6 +1132,7 @@ namespace bundler
 		fclose(f1);
 	}
 
+	/* Compute epipolar geometry between all matching images */
 	void MatchTracks::ComputeEpipolarGeometry(int new_image_start)
 	{
 		 m_transforms.clear();
@@ -1037,16 +1147,35 @@ namespace bundler
 			for (iter = m_matches_table.Begin(i); iter != m_matches_table.End(i); iter++) 
 			{
 				int j = iter->m_index; // first;
-				assert(m_matches_table.Contains(GetMatchIndex(i1, i2)));
-
+				
+				assert(ImagesMatch(i, j));
 				MatchIndex idx = GetMatchIndex(i, j);
 				MatchIndex idx_rev = GetMatchIndex(j, i);
-				
-				ComputeEpipolarGeometry(i, j);
 
-			}
+				bool connect12 = ComputeEpipolarGeometry(i, j);
+
+				if (!connect12)
+				{
+					// RemoveMatch(i, j);
+					// RemoveMatch(j, i);
+					remove.push_back(idx);
+					remove.push_back(idx_rev);
+
+					m_transforms.erase(idx);
+					m_transforms.erase(idx_rev);
+				}
+			}//iter
+		}//i
+
+		int num_removed = (int) remove.size();
+
+		for (int i = 0; i < num_removed; i++) {
+			int img1 = remove[i].first;
+			int img2 = remove[i].second;
+
+			// RemoveMatch(img1, img2);
+			m_matches_table.RemoveMatch(GetMatchIndex(img1, img2));
 		}
-
 	}
 
 	bool MatchTracks::ComputeEpipolarGeometry(int idx1, int idx2 ) 
@@ -1060,12 +1189,357 @@ namespace bundler
 
 		// make sure the Mat F type( CV_64F )  and whether F.t() equal to F.inv() ?
 		cv::Mat F = m_fmatrix[offset];
+		if(F.empty())
+			return false;
+
 		cv::Mat Finv = F.t();
 
 		memcpy(m_transforms[offset].m_fmatrix,F.data,9 * sizeof(double));
 		memcpy(m_transforms[offset_rev].m_fmatrix,Finv.data,9 * sizeof(double));
 
 		return true;
+	}
+
+	bool three_random_correspondences(int match_number,int * n1, int * n2, int * n3)
+	{
+		int shot = 0;
+		*n1 = rand() % match_number;	
+		//////////////////////////////////////////////////////////////////////////
+		do
+		{
+			*n2 = rand() % match_number;
+			shot++; if (shot > 100) return false;
+		}
+		while(*n2 == *n1);
+		//////////////////////////////////////////////////////////////////////////
+		shot = 0;
+		do
+		{
+			*n3 = rand() % match_number;
+			shot++; if (shot > 100) return false;
+		}
+		while(*n3 == *n1 || *n3 == *n2);
+
+		return true;
+	}
+	
+	bool estimate_horn(cv::Point2f u1, cv::Point2f u2, cv::Point2f u3, 
+		cv::Point2f v1, cv::Point2f v2, cv::Point2f v3, cv::Mat & dst)
+	{
+		double a[6][6]= { {u1.x,u1.y, 1.0,    0,    0,   0},
+		{   0,   0,   0, u1.x, u1.y, 1.0},
+		{u2.x,u2.y, 1.0,    0,    0,   0},
+		{   0,   0,   0, u2.x, u2.y, 1.0},
+		{u3.x,u3.y, 1.0,    0,    0,   0},
+		{   0,   0,   0, u3.x, u3.y, 1.0}
+		};
+
+		double b[6] = {v1.x, v1.y, v2.x, v2.y, v3.x, v3.y};
+
+		cv::Mat AA = cv::Mat(6,6,CV_64FC1,a);
+		cv::Mat B = cv::Mat(6,1,CV_64FC1,b);
+		//	cout<<B;
+
+		cv::Mat X(6,1,CV_64FC1);
+
+		bool ok = cv::solve(AA,B,X,cv::DECOMP_SVD);
+
+		if (!ok)
+		{
+			return false;
+		}
+
+		assert(3 == dst.cols && dst.rows == 3);
+
+		dst.at<double>(0,0) = X.ptr<double>(0)[0];
+		dst.at<double>(0,1) = X.ptr<double>(1)[0];
+		dst.at<double>(0,2) = X.ptr<double>(2)[0];
+		dst.at<double>(1,0) = X.ptr<double>(3)[0];
+		dst.at<double>(1,1) = X.ptr<double>(4)[0];
+		dst.at<double>(1,2) = X.ptr<double>(5)[0];
+
+		return true;
+	}
+
+	int compute_support_for_transformation(cv::Mat &H ,std::vector<cv::Point2f> object_points, std::vector<cv::Point2f> keypoints,std::vector<bool>& inliers)
+	{
+		inliers.clear();
+		
+		double det = (H.ptr<double>(0)[0] * H.ptr<double>(1)[1] - H.ptr<double>(0)[1] * H.ptr<double>(1)[0]);	
+		int matcher_size = object_points.size();
+		if (det < 0. || det > 4 * 4)
+		{
+			inliers.resize(matcher_size,false);
+			return 0;
+		}
+
+		int result = 0;
+		for (int i=0; i< matcher_size;i++)
+		{
+			cv::Point2f dst;
+			dst.x = object_points[i].x * H.ptr<double>(0)[0] + object_points[i].y * H.ptr<double>(0)[1] + H.ptr<double>(0)[2];
+			dst.y = object_points[i].x * H.ptr<double>(1)[0] + object_points[i].y * H.ptr<double>(1)[1] + H.ptr<double>(1)[2];
+
+			cv::Point2f real_point = keypoints[i];
+			if( (dst.x - real_point.x)*(dst.x - real_point.x) + (dst.y - real_point.y)*(dst.y - real_point.y) < RANSAC_DIST_THRESHOLD* RANSAC_DIST_THRESHOLD )
+			{
+				result++;
+				inliers.push_back(true);
+			}
+			else
+				inliers.push_back(false);
+		}
+
+		return result;
+	}
+
+	cv::Mat estimate_transform(std::vector<cv::Point2f> object_points, std::vector<cv::Point2f> keypoints,std::vector<bool>& inliers, int max_ransac_iterations)
+	{
+		int match_size = object_points.size();
+		int iteration = 0;
+		int best_support = -1;
+
+		cv::Mat Best_H;
+		
+		do 
+		{
+			int n1,n2,n3;
+
+			if(!three_random_correspondences(match_size,&n1,&n2,&n3))
+				break;
+
+			//object_points
+			cv::Point2f u1 = object_points[n1];
+			cv::Point2f u2 = object_points[n2];
+			cv::Point2f u3 = object_points[n3];
+
+			//keypoints
+			cv::Point2f v1 = keypoints[n1];
+			cv::Point2f v2 = keypoints[n2];
+			cv::Point2f v3 = keypoints[n3];
+
+			cv::Mat h(3,3,CV_64FC1);
+
+			h.ptr<double>(2)[0] = 0.0;
+			h.ptr<double>(2)[1] = 0.0;
+			h.ptr<double>(2)[2] = 1.0;
+
+			//º∆À„∑¬…‰±‰ªªæÿ’ÛH;
+			estimate_horn(u1,u2,u3,v1,v2,v3,h);
+
+			std::vector<bool> _inliers;
+			int support = compute_support_for_transformation(h,object_points,keypoints,_inliers);
+
+			if( support > best_support)
+			{
+				best_support = support;
+				Best_H = h.clone();
+				if (support > ransac_stop_support)
+					break;
+			}
+
+		}while(iteration++ < max_ransac_iterations);
+
+		if(Best_H.empty())
+			return Best_H;
+
+		int support = compute_support_for_transformation(Best_H,object_points,keypoints,inliers);
+
+		return Best_H;
+
+	}
+
+	std::vector<int> MatchTracks::EstimateTransform(int idx1,int idx2, double M[])
+	{
+		MatchIndex offset = GetMatchIndex(idx1, idx2);
+
+		std::vector<KeypointMatch> &list = m_matches_table.GetMatchList(offset);
+
+		std::vector<bool> inliers;
+		std::vector<cv::Point2f> pt1,pt2;
+
+		for(int i = 0; i < list.size(); i++)
+		{
+			int ptidx1 = list[i].m_idx1;
+			int ptidx2 = list[i].m_idx2;
+
+			pt1.push_back(cv::Point2f(m_image_data[idx1].m_keys[ptidx1].m_x,m_image_data[idx1].m_keys[ptidx1].m_y));
+			pt2.push_back(cv::Point2f(m_image_data[idx2].m_keys[ptidx2].m_x,m_image_data[idx2].m_keys[ptidx2].m_y));
+		}
+
+		cv::Mat H;
+#ifdef USING_OPENCV
+		std::vector<unsigned char> match_mask;
+		H = cv::findHomography(pt1,pt2,CV_RANSAC,3.0,match_mask);
+		for (int i = 0; i < match_mask.size(); i++)
+		{
+			bool vd = match_mask[i] != 0 ? true : false;
+			inliers.push_back(vd);
+		}
+
+		std::vector<cv::Point2f> per_pt;
+		perspectiveTransform(pt1,per_pt,H);
+
+		double projErr = 0.0;
+		int inlier_num = 0;
+		for (int i = 0; i < match_mask.size(); i++)
+		{
+			if((int)match_mask[i] == 0 ) continue;
+
+			double dist = sqrt((per_pt[i].x - pt2[i].x)*(per_pt[i].x - pt2[i].x) + (per_pt[i].y - pt2[i].y)*(per_pt[i].y - pt2[i].y));
+
+			projErr += dist;
+			inlier_num++;
+		}
+		if(inlier_num > 0)
+			projErr /= (inlier_num);
+
+		//std::cout<<"re-projection error: "<<projErr<<std::endl;
+#else
+		H = estimate_transform(pt1,pt2,inliers,1000);
+
+		std::vector<cv::Point2f> per_pt;
+		perspectiveTransform(pt1,per_pt,H);
+
+		double projErr = 0.0;
+		int inlier_num = 0;
+		for (int i = 0; i < inliers.size(); i++)
+		{
+			if(!inliers[i]) continue;
+			double dist = sqrt((per_pt[i].x - pt2[i].x)*(per_pt[i].x - pt2[i].x) + 
+				(per_pt[i].y - pt2[i].y)*(per_pt[i].y - pt2[i].y));
+
+			projErr += dist;
+			inlier_num++;
+		}
+
+		if(inlier_num > 0)
+			projErr /= (inlier_num);
+
+		std::cout<<"re-projection error: "<<projErr<<std::endl;
+#endif // USING_OPENCV
+
+		if(!H.empty())
+		{
+			memcpy(M,H.data,9 * sizeof(double));
+			//std::cout<<"[EstimateTransform] "<<H<<std::endl;
+		}
+
+		std::vector<int> inlierIndex;
+		for (int i = 0; i < inliers.size(); i ++)
+		{
+			if(!inliers[i]) continue;
+			inlierIndex.push_back(i);
+		}
+
+		return inlierIndex;
+	}
+
+	void MatchTracks::ComputeTransform()
+	{
+		unsigned int num_images = m_num_images;
+
+		m_transforms.clear();
+
+		for (unsigned int i = 0; i < num_images; i++) {
+			MatchAdjList::iterator iter;
+			for (iter = m_matches_table.Begin(i); iter != m_matches_table.End(i); iter++) {
+				unsigned int j = iter->m_index;
+
+				assert(ImagesMatch(i, j));
+
+				MatchIndex idx = GetMatchIndex(i, j);
+				MatchIndex idx_rev = GetMatchIndex(j, i);
+
+				m_transforms[idx] = TransformInfo();
+				m_transforms[idx_rev] = TransformInfo();
+
+				bool connect12 = ComputeTransform(i, j);
+
+				if (!connect12) {
+					m_matches_table.RemoveMatch(idx);
+					m_matches_table.RemoveMatch(idx_rev);
+					// m_match_lists.erase(idx);
+
+					m_transforms.erase(idx);
+					m_transforms.erase(idx_rev);
+				}
+			} // iter
+		} // i
+
+		/* Print the inlier ratios */
+		FILE *f = fopen("pairwise_scores.txt", "w");
+
+		for (unsigned int i = 0; i < num_images; i++) {
+			MatchAdjList::iterator iter;
+
+			for (iter = m_matches_table.Begin(i); iter != m_matches_table.End(i); iter++) {
+				unsigned int j = iter->m_index; // first;
+
+				assert(ImagesMatch(i, j));
+
+				// MatchIndex idx = *iter;
+				MatchIndex idx = GetMatchIndex(i, j);
+				fprintf(f, "%d %d %0.5f\n", i, j, 
+					m_transforms[idx].m_inlier_ratio);
+			}
+		}
+
+		fclose(f);
+	}
+
+	bool MatchTracks::ComputeTransform(int idx1,int idx2)
+	{
+		if(idx1 == idx2)
+		{
+			printf("[ComputeTransform] Error: computing tranform "
+				"for identical images\n");
+			return false;
+		}
+		
+		double M[9];
+		std::vector<int> inliers = EstimateTransform(idx1,idx2,M);
+
+		int num_inliers = (int) inliers.size();
+
+		MatchIndex offset = GetMatchIndex(idx1, idx2);
+		MatchIndex offset_rev = GetMatchIndex(idx2, idx1);
+		std::vector<KeypointMatch> &list = m_matches_table.GetMatchList(offset);
+		
+// 		printf("Inliers[%d,%d] = %d out of %d\n", idx1, idx2, num_inliers, 
+// 			(int) list.size());
+
+#define MIN_INLIERS 10
+		if (num_inliers >= MIN_INLIERS)
+		{
+			m_transforms[offset].m_num_inliers  = num_inliers;
+			m_transforms[offset].m_inlier_ratio = 
+				((double) num_inliers) / ((double) list.size());
+
+			cv::Mat_<double> homo = (cv::Mat_<double>(3, 3)<< M[0],M[1],M[2],M[3],M[4],M[5],M[6],M[7],M[8]);
+			cv::Mat_<double> hinv = homo.inv();
+
+			memcpy(m_transforms[offset].m_H, M, 9 * sizeof(double));
+			memcpy(m_transforms[offset_rev].m_H, hinv.data, 9 * sizeof(double));
+#if 0
+			printf("Ratio[%d,%d] = %0.3e\n", 
+				idx1, idx2, m_transforms[offset].m_inlier_ratio);
+			
+			int i, j;
+			for (i = 0; i < 3; i++) {
+				printf("  ");
+				for (j = 0; j < 3; j++) {
+					printf(" %0.6e ", M[i * 3 + j]);
+				}
+				printf("\n");
+			}
+			printf("\n");
+#endif
+
+			return true;
+		}
+		else
+			return false;
 	}
 
 	MatchTracks::~MatchTracks(void)

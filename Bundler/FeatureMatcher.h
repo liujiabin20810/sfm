@@ -13,6 +13,28 @@ namespace bundler
 {
 	class SIFT;
 
+	class CPruneFeature
+	{
+
+		CPruneFeature(){};
+		~CPruneFeature(){};
+
+		void init_images_list(std::vector<std::string> images_list);
+
+		void init_image_mask(std::vector<cv::Mat> image_masks);
+
+		bool read_sift_feature();
+
+		//images num
+		int n_images;
+		// object mask
+		std::vector<cv::Mat> m_image_masks;
+		//prune matches with object mask
+		std::map<std::pair<int, int>, std::vector<cv::DMatch> > prune_matches_matrix;
+		// prune keypoints with object mask
+		std::vector<std::vector<cv::KeyPoint>> prune_images_points;
+	};
+
 	class CFeatureMatcher
 	{
 	public:
@@ -22,11 +44,17 @@ namespace bundler
 
 		void init_images_list(std::vector<std::string> images_list);
 
+		void init_image_mask(std::vector<cv::Mat> image_masks);
+
 		// init with images and calculate sift feature
 		bool calc_sift_feature(std::vector<cv::Mat> images);
 
 		// init with images list and calculate sift feature
 		bool calc_sift_feature_and_match();
+
+		bool read_sift_feature();
+
+		bool calc_sift_feature();
 
 		~CFeatureMatcher();
 
@@ -46,16 +74,11 @@ namespace bundler
 		std::map<std::pair<int, int>, std::vector<cv::DMatch> > matches_matrix;
 
 		std::map<std::pair<int, int>, cv::Mat > F_matrix;
-		//prune matches with object mask
-		std::map<std::pair<int, int>, std::vector<cv::DMatch> > prune_matches_matrix;
-
-		// prune keypoints with object mask
-		std::vector<std::vector<cv::KeyPoint>> prune_images_points;
 
 		// source images Keypoints
 		std::vector<std::vector<cv::KeyPoint>> images_points;
 
-		std::vector<cv::Mat_<cv::Vec3b> > images_points_colors;
+		std::vector<std::vector<cv::Vec3b> > images_points_colors;
 		//images num
 		int n_images;
 		

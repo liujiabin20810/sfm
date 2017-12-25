@@ -12,6 +12,7 @@
 #include "Common.h"
 #include "FeatureMatcher.h"
 #include "MatchTracks.h"
+#include "BundleAdjuster.h"
 
 namespace bundler
 {
@@ -32,34 +33,68 @@ namespace bundler
 		/**
 		* Get an initial 3D point cloud from 2 views only
 		*/
-		bool GetBaseLineTriangulation();
+		bool GetBaseLineTriangulation(std::vector<ImageKeyVector>& point_views);
 
 		void RecoverDepthFromImages();
 
 
+		cv::Mat drawImageMatches(int _index_i, int _index_j);
+
 		~CMultiCameraPnP();
 
 	private:
+		/* Setup the initial camera pair for bundle adjustment */
+		int SetupInitialCameraPair(int i_best, int j_best, std::vector<ImageKeyVector>& pt_view);
+
+		/* Pick a good initial pair of cameras to bootstrap the bundle
+	     * adjustment */
+		void PickInitialPair(int &i_best, int &j_best);
+
+		int GetNumTrackMatches(int img1, int img2);
+
+		Keypoint& GetImageKey(int img, int key);
+
+		std::vector<cv::Point2f> GetImageKeypoints(int image);
+
+		bool FindCameraMatrices(cv::Mat F,cv::Matx34d& P,cv::Matx34d& P1, cv::Point2f p1,cv::Point2f p2);
 		
-		bool FindCameraMatrices(const cv::Mat& K,
-			const cv::Mat& Kinv,
-			const cv::Mat& distcoeff,
-			const cv::vector<cv::KeyPoint>& imgpts1,
-			const cv::vector<cv::KeyPoint>& imgpts2,
-			int ith_camera,
-			int jth_camera,
-			cv::Mat F,
+		bool FindCameraMatrices(cv::Mat F,camera_params_t& camera1, camera_params_t& camera2,
+				cv::Point2f kp1,cv::Point2f kp2);
+
+		std::vector<int> ProjectMeanError(camera_params_t  camera,std::vector<cv::Point3f> points3d,std::vector<cv::Point2f> points2d);
+
+		double TriangulatePoints(int ith_camera,int jth_camera,camera_params_t& camera1, camera_params_t& camera2,std::vector<PointData>& pointcloud);
+
+		bool TriangulatePointsBetweenViews(int older_view,int working_view,camera_params_t& camera1, camera_params_t& camera2,std::vector<ImageKeyVector>& pt_view );
+
+		void SetBundleAdjustData(std::vector<CameraT> &camera_data,std::vector<Point3D>& point_data,
+			std::vector<Point2D>& measurements,std::vector<int>& ptidx,std::vector<int>& camidx,
+			std::vector<ImageKeyVector> pt_views);
+
+		void GetBundleAdjustData(std::vector<CameraT> &camera_data,std::vector<Point3D>& point_data,
+			std::vector<Point2D>& measurements,std::vector<int>& ptidx,std::vector<int>& camidx);
+
+		void AdjustCurrentBundle(std::vector<ImageKeyVector> pt_views);
+
+		// check the point_view is correct or not.
+		int CheckPointKeyConsistency(const std::vector<ImageKeyVector> pt_views,
+			std::vector<int> added_order);
+
+		//////////////////////////////////////////////////////////////////////////
+		bool FindCameraMatrices(int ith_camera,int jth_camera,
 			cv::Matx34d& P,
 			cv::Matx34d& P1);
 
-		bool TriangulatePointsBetweenViews(int working_view,int older_view );
+		int SelectPMatrix(std::vector<cv::Matx34d> _4Pmatrixs,cv::Point3d u,cv::Point3d u1);
+		int SelectPMatrix(std::vector<cv::Matx34d> _4Pmatrixs,cv::Point2f u,cv::Point2f u1);
+
+		bool TriangulatePointsBetweenViews(int older_view,int working_view,std::vector<ImageKeyVector>& pt_view );
 
 		double TriangulatePoints(
 			int ith_camera,
 			int jth_camera,
 			std::vector<PointData>& pointcloud);
 
-		void AdjustCurrentBundle();
 
 		cv::Mat_<double> LinearLSTriangulation(cv::Point3d u,		//homogenous image point (u,v,1)
 			cv::Matx34d P,		//camera 1 matrix
@@ -73,14 +108,20 @@ namespace bundler
 			cv::Matx34d P1			//camera 2 matrix
 			);
 
-		bool FindPoseEstimation(int working_view,cv::Mat_<double>& rvec,
-				cv::Mat_<double>& t,cv::Mat_<double>& R); 
+		bool FindPoseEstimation(int working_view,
+				cv::Mat_<double>& t,cv::Mat_<double>& R ,std::vector<ImageKeyVector>& pt_view ); 
 
 		void Find2D3DCorrespondences(int working_view, 
 			std::vector<cv::Point3f>& ppcloud, 
-			std::vector<cv::Point2f>& imgPoints);
+			std::vector<cv::Point2f>& imgPoints,
+			std::vector<ImageKeyVector> pt_view,
+			std::vector<int> & keys_solve,
+			std::vector<int> & idxs_solve);
 
-		void WriteCloudPoint();
+
+		void WriteCloudPoint(char filename[],int start_idx);
+
+		void SaveModelFile(const char* outpath,std::vector<ImageKeyVector> pt_views);
 
 	public:
 
@@ -92,14 +133,24 @@ namespace bundler
 		int m_point_data_index;
 	private:
 
-		cv::Mat K, Kinv, distortion_coeff;
-		cv::Mat distcoeff_32f;
-		cv::Mat K_32f;
+		//BundleAdjuster mba;
+
+		camera_params_t *m_cameras;
+		int curr_num_cameras;
+		float m_f,m_cx,m_cy,m_r;
+
+		//////////////////////////////////////////////////////////////////////////
+		std::map<int,cv::Mat> camera_matrixs_inv;
+		std::map<int,cv::Mat> camera_matrixs;
+		//////////////////////////////////////////////////////////////////////////
+
+		int m_initial_pair[2];       /* Images to use as the initial pair
+				  * during bundle adjustment */
 
 		int m_first_view;
 		int m_second_view; //baseline's second view other to 0
 		std::set<int> done_views;
-		std::set<int> good_views;
+		std::vector<int> good_views;
 
 		MatchTracks m_matchTracks;
 	};

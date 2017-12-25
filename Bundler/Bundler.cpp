@@ -20,14 +20,14 @@
 #include <iostream>
 #include <fstream>
 
-#pragma comment(lib, "V3D.lib")
-#pragma comment(lib, "colamd.lib")
+#pragma comment(lib, "pba.lib")
 #pragma comment(lib, "siftgpu.lib")
 #pragma comment(lib,"opencv_calib3d249.lib")
 #pragma comment(lib,"opencv_core249.lib")
 #pragma comment(lib,"opencv_highgui249.lib")
 #pragma comment(lib,"opencv_imgproc249.lib")
 #pragma comment(lib,"opencv_features2d249.lib")
+#pragma comment(lib,"solvePnPlib.lib")
 
 using namespace cv;
 using namespace std;
@@ -174,46 +174,8 @@ int findImage(char strPath[],vector<string> & imgList)
 
 int _tmain(int argc, _TCHAR* argv[])
 {
-/*
-	bundler::SIFT sift(4096);
+	char strPath[1024] = "../feet/source";
 
-	char * v[] = {"-fo", "-1",  "-v", "0"};//
-	sift.ParseParam(4,v);
-
-	Mat im1 = imread("crazyhorse/P1000965.jpg",1);
-	Mat im2 = imread("crazyhorse/P1000968.jpg",1);
-
-	if(im1.empty() || im2.empty() )
-		return -1;
-
-	vector<SiftKeypoint> vk1,vk2;
-	vector<float> vdes1,vdes2;
-
-	sift(im1,vk1,vdes1);
-	sift(im2,vk2,vdes2);
-
-	int n = vk1.size();
-	int (*match_buf)[2] = new int[n][2];
-	cv::Mat F;
-	int good_match_num = sift.match(vk1,vk2,vdes1,vdes2,match_buf,F);
-
-	cout<<"match num = "<<good_match_num<<endl;
-	if(good_match_num > 0)
-		sift.drawSiftMatch(im1,vk1,im2,vk2,match_buf,good_match_num);
-
-	delete [] match_buf;
-
-	return 0;
-*/
-
-	char strPath[1024] = "crazyhorse";
-	ofstream fp("out.txt");
-
-	if (!fp.is_open())
-	{
-		std::cout << "Open file err..." << std::endl;
-		return -1;
-	}
 	if(argc > 1)
 		strcpy(strPath,argv[1]);
 
@@ -235,11 +197,21 @@ int _tmain(int argc, _TCHAR* argv[])
 
 	fmatcher.initCalibMatrix(m_utils.m_K,m_utils.m_distortion_coeff);
 
+	//fmatcher.read_sift_feature();
+
 	if(!fmatcher.match())
 		return -1;
 
+	double t1 = getTickCount();
+
 	fmatcher.RecoverDepthFromImages();
 
+	double t2 = getTickCount();
+
+	double t = (t2 -t1)/getTickFrequency();
+
+	
+	std::cout<<"process time :"<<t<<" s"<<std::endl;
 // 	bundler::SIFT sift(4096);
 // 
 // 	sift.setImageList(list);
