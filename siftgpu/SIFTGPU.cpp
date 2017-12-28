@@ -57,12 +57,11 @@ namespace bundler
 		
 		int gpuType = m_sift->CreateContextGL();
 		
-		std::cout << gpuType<< std::endl;
+		//std::cout << gpuType<< std::endl;
 
 		m_matcher = new SiftMatchGPU(feature_num);
 		
 		m_matcher->VerifyContextGL(); //must call once
-
 
 	}
 	
@@ -162,8 +161,8 @@ namespace bundler
 
 
 		return
-			(1.0 / (Fl[0] * Fl[0] + Fl[1] * Fl[1]) +
-			1.0 / (Fr[0] * Fr[0] + Fr[1] * Fr[1])) *
+			(1.0 / (Fl[0] * Fl[0] + Fl[1] * Fl[1] + 1e-8) +
+			1.0 / (Fr[0] * Fr[0] + Fr[1] * Fr[1] + 1e-8 )) *
 			(pt * pt);
 	}
 
@@ -181,7 +180,7 @@ namespace bundler
 		cv::Mat mask;
 		std::vector<cv::Point2f> queryInliers;
 		std::vector<cv::Point2f> sceneInliers;
-		
+
 		F = cv::findFundamentalMat(queryCoord, objectCoord, mask, CV_FM_RANSAC);
 
 		double f[9];
@@ -203,6 +202,8 @@ namespace bundler
 		
 		double threshold = 5.0625;
 		int inliers_cnt = 0, outliers_cnt = 0;
+		double sum_residual = 0.0;
+
 		std::vector<int> preIndex;
 		for (int j = 0; j < mask.rows; j++)
 		{
@@ -227,6 +228,8 @@ namespace bundler
 					inliers[j] = 1;
 					inliers_cnt++;
 					preIndex.push_back(j);
+
+					sum_residual += dist;
 				}
 			}
 			else
@@ -235,7 +238,10 @@ namespace bundler
 			}
 		}		
 
-		//std::cout<<"[F matrix] first inliers: "<< inliers_cnt <<std::endl;
+		//std::cout<<"[F matrix] first inliers: "<< inliers_cnt <<std::endl;		
+		if(inliers_cnt < 30)
+			return inliers;
+
 		queryCoord.clear();
 		objectCoord.clear();
 		for( int i = 0; i < match_num; i++){
@@ -259,7 +265,7 @@ namespace bundler
 		f[8] = F.ptr<double>(2)[2];
 
 		inliers_cnt = 0;
-		double sum_residual = 0.0;
+		sum_residual = 0.0;
 		int count_residual = 0;
 		for (int j = 0; j < mask2.rows; j++){
 			if (mask2.at<uchar>(j) == 1)
@@ -296,7 +302,8 @@ namespace bundler
 #ifdef _DEBUG
 		std::cout<<"inliers num: "<<inliers_cnt <<std::endl;
 #endif
-//		std::cout<<"inliers num: "<<inliers_cnt<<" re-project err: "<< sum_residual/inliers_cnt <<std::endl;
+		if(inliers_cnt > 0)
+			std::cout<<"inliers num: "<<inliers_cnt<<" re-project err: "<< sum_residual/inliers_cnt <<std::endl;
 		
 		return inliers;
 	}
@@ -370,7 +377,7 @@ namespace bundler
 
 		int(*_buf)[2] = new int[queryPtsNum][2];
 		int num_match = m_matcher->GetSiftMatch(queryPtsNum, _buf);
-
+		
 #ifdef _DEBUG
 		std::cout << num_match << " sift matches were found;\n";
 #endif // _DEBUG
@@ -381,8 +388,8 @@ namespace bundler
 
 		if ( num_match > 30 )
 		{
-			mask = findInliers(queryKeypoints, trainedKeypoints, F, _buf, num_match);
 
+			mask = findInliers(queryKeypoints, trainedKeypoints, F, _buf, num_match);
 			for (int i = 0; i< num_match; i++)
 			{
 				if (mask[i])
@@ -477,7 +484,7 @@ namespace bundler
 		else
 			return false;
 	}
-	
+
 	bool SIFT::writeSiftMatch( std::map<std::pair<int, int>,std::vector<cv::DMatch> >& matches_matrix)
 	{
 		int i,j;
@@ -518,6 +525,7 @@ namespace bundler
 			}
 		return true;
 	}
+	
 	//Read the .sift files in C.WU's BINARY format
 	bool SIFT::readSiftFeature(std::ifstream &fin , std::vector<SiftGPU::SiftKeypoint>& keys,std::vector<float>& descs)
 	{
@@ -534,13 +542,15 @@ namespace bundler
 		memcpy(&npoint, ch+8, 4);
 		memcpy(&n, ch+12, 4);
 		memcpy(&dim, ch+16, 4);
-		//npoint = (ch[11]<<24) + (ch[10]<<16) + (ch[9]<<8) + ch[8];
-		//n = (ch[15]<<24) + (ch[14]<<16) + (ch[13]<<8) + ch[12];
-		//dim = (ch[19]<<24) + (ch[18]<<16) + (ch[17]<<8) + ch[16];
-		printf("%s,%s,%d,%d,%d\n",name,version,npoint,n,dim);
+//		npoint = (ch[11]<<24) + (ch[10]<<16) + (ch[9]<<8) + ch[8];
+//		n = (ch[15]<<24) + (ch[14]<<16) + (ch[13]<<8) + ch[12];
+//		dim =  ((ch[19]<<24) + (ch[18]<<16) + (ch[17]<<8) + ch[16]);
 
-		if(n != 5 || dim != 128)
+		if(n != 5 || dim != 128 || (strcmp(name,"SIFT") != 0)  || (strcmp(version,"v4.0") != 0 ))
+		{
+			printf("%s,%s,%d,%d,%d\n",name,version,npoint,n,dim);
 			return false;
+		}
 
 		keys.resize(npoint);
 		descs.resize(npoint*dim);
@@ -555,11 +565,11 @@ namespace bundler
 			memcpy(color,ch+8,4);
 			memcpy(&scale,ch+12,4);
 			memcpy(&orientation,ch+16,4);
-			if(i < 5 )
-			{
-				printf("%d,%d,%d",int(color[0]),int(color[1]),int(color[2]));
-				printf("\t%f,\t%f,\t%f,\t%f\n",x,y,scale,orientation);
-			}
+// 			if(i < 5 )
+// 			{
+// 				printf("%d,%d,%d",int(color[0]),int(color[1]),int(color[2]));
+// 				printf("\t%f,\t%f,\t%f,\t%f\n",x,y,scale,orientation);
+// 			}
 
 			keys[i].x = x;
 			keys[i].y = y;
@@ -572,26 +582,26 @@ namespace bundler
 		for(int i =0; i < npoint && iter != descs.end(); i++)
 		{			
 			fin.read(ch,dim);
+
 			std::vector<float> _feature(dim);
 			double _fsum = 0;
 			for(int j = 0; j < dim; j++)
 			{
-				uchar c = (unsigned char)ch[j];
+				char c = ( 128 + ch[j]);
 				_feature[j] = (float)c;
-
 				_fsum += _feature[j]*_feature[j];
 			}
 			_fsum = sqrtf(_fsum);
- 			printf("%f \n",_fsum);
+ 			//printf("%f \n",_fsum);
 
 			for(int j = 0; j < dim && iter != descs.end(); j++)
 			{
-				_feature[j] = _feature[j]*512/_fsum;
+				_feature[j] = _feature[j]/_fsum;  // 归一化
 				*iter = _feature[j];
 				++iter;
 				//printf("%d, ",(int)_feature[j]);
 			}
-			printf("\n");
+			//printf("\n");
 		}
 
 		fin.read(ch,sizeof(int));
@@ -599,7 +609,8 @@ namespace bundler
 		memcpy(&get_eof,ch,4);
 		int eof_marker = (0xff+('E'<<8)+('O'<<16)+('F'<<24));
 
-		printf("%d,%d\n",get_eof,eof_marker);
+		if(get_eof != eof_marker)
+			return false;
 
 		return true;
 	}
@@ -611,8 +622,8 @@ namespace bundler
 		//int name = (int)('S'+ ('I'<<8)+('F'<<16)+('T'<<24));
 		//int version = (int)('V'+('4'<<8)+('.'<<16)+('0'<<24));
 		//(int)(0xff+('E'<<8)+('O'<<16)+('F'<<24));
-		char eof_marker[4] = "EOF";
-			
+
+		int eof_marker = (0xff+('E'<<8)+('O'<<16)+('F'<<24));
 		int npoint = keys.size();
 		int n = 5,dim = 128;
 		char ch[256];
@@ -652,30 +663,33 @@ namespace bundler
 				int position = i*dim + j;
 				float f = descs[position];
 				_feature[j] = f;
-				_fsum += f*f;
+				//_fsum += f*f;
 			}
-
-			_fsum = sqrt(_fsum);
-			//printf("%lf\n",_fsum);
+			// 归一化特征 _fsum = 1.0；
+// 			_fsum = sqrt(_fsum);
+// 			printf("%lf\n",_fsum);
 			char *_chfeature = new char[dim];
 
 			for (int j=0; j < dim; j++)
 			{
-				_feature[j] = _feature[j]*512/_fsum;
-				int tmp = (int)(0.5 + _feature[j]) - 128;
+				_feature[j] = _feature[j]*512;
+				int tmp = (int)(_feature[j] - 128 ) ;
 				_chfeature[j] = (char)tmp;
 				if(tmp > maxData) maxData = tmp;
 				if(tmp < minData) minData = tmp;
 				//printf("%d, ",tmp);
 			}			
-			std::cout<<std::endl;
+			
 
 			fp.write(_chfeature,sizeof(char)*dim);
 
 			delete [] _chfeature;
 		}
 
-		printf("%d,%d\n",maxData,minData);
+		memcpy(ch,&eof_marker,4);
+		fp.write(ch,4);
+		//printf("descriptor range: %d,%d\n",maxData,minData);
+
 		return true;
 	}	
 	//Write the .sift files in C.WU's BINARY format
@@ -690,7 +704,7 @@ namespace bundler
 			if(pos < 0)
 				return false;
 			std::string outname = filename.substr(0,pos) + ".sift";
-			std::cout<<filename<<" "<<pos<<" "<<outname<<std::endl;
+			//std::cout<<filename<<" "<<pos<<" "<<outname<<std::endl;
 			std::ofstream fp(outname,std::ios_base::binary);
 			if(!fp.is_open())
 				return false;
@@ -702,7 +716,6 @@ namespace bundler
 
 		return true;
 	}
-
 	//Write the .sift files in Lowe's ASCII format
 	bool SIFT::writeLoweSiftFeature(std::ofstream &fp , std::vector<SiftGPU::SiftKeypoint> keys,std::vector<float > descs)
 	{
@@ -759,7 +772,7 @@ namespace bundler
 			if(pos < 0)
 				return false;
 			std::string outname = filename.substr(0,pos) + ".sift";
-			std::cout<<filename<<" "<<pos<<" "<<outname<<std::endl;
+			//std::cout<<filename<<" "<<pos<<" "<<outname<<std::endl;
 			std::ofstream fp(outname);
 			if(!fp.is_open())
 				return false;
@@ -824,7 +837,7 @@ namespace bundler
 		}
 
 		cv::imwrite("match.jpg",img_match);
-		cv::namedWindow("Match",1);
+		cv::namedWindow("Match",0);
 		cv::imshow("Match",img_match);
 	 
 		cv::waitKey(0);

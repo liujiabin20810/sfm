@@ -92,6 +92,8 @@ namespace bundler
 		std::vector<cv::Mat> m_images;
 		std::vector<std::string>  m_imageNameList;
 
+		int m_image_width, m_image_height;
+
 		cv::Mat m_K, m_Kinv, m_distortion_coeff;
 		cv::Mat m_distcoeff_32f;
 		cv::Mat m_K_32f;

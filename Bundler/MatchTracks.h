@@ -372,9 +372,6 @@ namespace bundler
 
 		std::map<std::pair<int, int>, std::vector<cv::DMatch> > m_matches_matrix;
 
-		// source images Keypoints
-		//std::vector<std::vector<cv::KeyPoint>> m_images_points;
-
 		std::map<std::pair<int, int>, cv::Mat > m_fmatrix;
 
 		std::vector<cv::Mat> m_images;

@@ -99,7 +99,7 @@ namespace bundler
 			dir_name_ = dir_name_.substr(0, dir_name_.size() - 1);
 		}
 
-		std::cout << "Path : " << dir_name_ << std::endl;
+		//std::cout << "Path : " << dir_name_ << std::endl;
 		hFind = FindFirstFile(std::string(dir_name_).append("\\*").c_str(), &fdata);
 		if (hFind != INVALID_HANDLE_VALUE)
 		{
@@ -151,6 +151,11 @@ namespace bundler
 			m_imageNameList.push_back(filename);
 			m_images.push_back(m_);
 		}
+
+		m_image_width = m_images[0].cols;
+		m_image_height = m_images[0].rows;
+
+
 		return m_imageNameList.size();
 	}
 
@@ -210,20 +215,19 @@ namespace bundler
 		cv::Mat cam_matrix;
 
 		cv::FileStorage fs;
-		if (fs.open(std::string(strPath) + "\\out_camera_data.yml", cv::FileStorage::READ)) {
+		if (fs.open(std::string(strPath) + "\\camera_data.yml", cv::FileStorage::READ)) {
 			fs["camera_matrix"] >> cam_matrix;
 			fs["distortion_coefficients"] >> m_distortion_coeff;
 		}
 		else {
 			//no calibration matrix file - mockup calibration
-			int image_width= m_images[0].cols;
-			int image_hight = m_images[0].rows;
-			double max_w_h = MAX(image_hight, image_width);
+
+			double max_w_h = MAX(m_image_height, m_image_width);
 			//iphone 6 1/3"  4.80mm*3.60mm , 4.2mm
 			//crazyhorse (4.9/6.1)
 			double focal_length_in_pixel = max_w_h * (4.2/4.8);
-			cam_matrix = (cv::Mat_<double>(3, 3) << focal_length_in_pixel, 0, image_width / 2.0,
-				0, focal_length_in_pixel, image_hight / 2.0,
+			cam_matrix = (cv::Mat_<double>(3, 3) << focal_length_in_pixel, 0, m_image_width / 2.0,
+				0, focal_length_in_pixel, m_image_height / 2.0,
 				0, 0, 1);
 			m_distortion_coeff = cv::Mat_<double>::zeros(1, 4);
 		}
@@ -857,14 +861,14 @@ namespace bundler
 	bool CMultiCameraPnP::match()
 	{
 		// calculate siftgpu feature and matches
-		if(!calc_sift_feature_and_match())
+		if(!read_sift_features())
 		{
-			std::cerr<<"calc sift feature and match err."<<std::endl;
+			std::cerr<<"read sift feature and match err."<<std::endl;
 			return false;
 		}
 
 		// compute tracks
-		m_matchTracks.InitMatchTable(matches_matrix,images_points,F_matrix,m_images,n_images);
+		m_matchTracks.InitMatchTable(prune_matches_matrix,prune_images_points,prune_F_matrix,m_image_masks,n_images);
 
 		m_matchTracks.ComputeGeometricConstraints();
 
@@ -1378,14 +1382,6 @@ namespace bundler
 			return false;
 		}
 
-// 		cv::Point3d u(kp.x, kp.y, 1.0);
-// 		cv::Point3d u1(kp1.x, kp1.y, 1.0);
-// 		cv::Mat_<double> um = mK.inv() * cv::Mat_<double>(u);
-// 		u = um.at<cv::Point3d>(0);
-// 		cv::Mat_<double> um1 = mK1.inv() * cv::Mat_<double>(u1);
-// 		u1 = um1.at<cv::Point3d>(0);
-//		int i = SelectPMatrix(P,_4Pmatrixs,u,u1);
-
 		int i = SelectPMatrix(_4Pmatrixs,kp,kp1);
 		if(i < 0)
 			return false;
@@ -1525,20 +1521,24 @@ namespace bundler
 		std::cout << "======================================================================\n";
 		
 		std::vector<ImageKeyVector> point_views;
-		char ch[64];
+		
+		char ch[256];
+		strcpy(ch,m_path);
 
 		if(!GetBaseLineTriangulation(point_views))
 			return ;
 		
-		done_views.insert(m_first_view);
-		done_views.insert(m_second_view);
+		done_views.push_back(m_first_view);
+		done_views.push_back(m_second_view);
 		good_views.push_back(m_first_view);
 		good_views.push_back(m_second_view);
 
  		AdjustCurrentBundle(point_views);
-		sprintf(ch,"../../basecloud/00_output[%d,%d].txt",m_first_view,m_second_view);
+		char tmp[128];
+		sprintf(tmp,"/00_output[%d,%d].txt",m_first_view,m_second_view);
+		strcat(ch,tmp);
 		WriteCloudPoint(ch,0);
-		
+
 		int order = 0;
 		while (done_views.size() < n_images)
 		{
@@ -1547,8 +1547,10 @@ namespace bundler
 			int max_2d3d_view = -1, max_2d3d_count = 0;
 
 			for (int _i=0; _i < n_images; _i++) 
-			{				
-				if(done_views.find(_i) != done_views.end()) 
+			{	
+				std::vector<int>::iterator it = find(done_views.begin(),done_views.end(),_i);
+
+				if(it != done_views.end()) 
 					continue; //already done with this view				
 				if(_i == 19)
 					continue;
@@ -1581,8 +1583,10 @@ namespace bundler
 			std::cout<<"[RecoverDepthFromImages] Matched View: "<<max_2d3d_view<<" Matched Count: "<<max_2d3d_count<<std::endl;
 			 //highest 2d3d matching view
 			int i = max_2d3d_view;
-			done_views.insert(i);
+			done_views.push_back(i);
 			
+			cout<< done_views.size() << endl;
+
 			if(max_2d3d_view < 0)
 				continue;
 
@@ -1735,19 +1739,28 @@ namespace bundler
 			if(added_point_num == 0)
 				continue;
 	
-			char ch[64];
-			sprintf(ch,"../../basecloud/%02d_output.txt",i);
+			char tmp[64];
+			sprintf(tmp,"/%02d_%02d_output.txt",++order,i);
+			strcpy(ch,m_path);
+			strcat(ch,tmp);
 			WriteCloudPoint(ch,cloud_size_befor_triangulation);
-			//if(good_views.size() >= 18)break;
+			
 		}
 		
 		//CheckPointKeyConsistency(point_views,good_views);
 		//AdjustCurrentBundle(point_views);
 
-		sprintf(ch,"../../basecloud/full_output.txt");
+		sprintf(tmp,"/full_output.txt");
+		strcpy(ch,m_path);
+		strcat(ch,tmp);
 		WriteCloudPoint(ch,0);
 
 		
+		sprintf(tmp,"/model.nvm");
+		strcpy(ch,m_path);
+		strcat(ch,tmp);
+		SaveModelFile(ch,point_views);
+
 		std::cout << "======================================================================\n";
 		std::cout << "========================= Depth Recovery DONE ========================\n";
 		std::cout << "======================================================================\n";
@@ -1879,7 +1892,7 @@ namespace bundler
 
 		//std::cout<<"[FindPoseEstimation]: 3d: "<<ppcloud.size()<<" 2d: "<<imgpoints.size()<<std::endl;
 
-		if(ppcloud.size() <= 7 || imgpoints.size() <= 7 || ppcloud.size() != imgpoints.size())
+		if(ppcloud.size() <= 10 || imgpoints.size() <= 10 || ppcloud.size() != imgpoints.size())
 		{ 
 			//something went wrong aligning 3D to 2D points..
 			std::cerr << "[FindPoseEstimation] Couldn't find [enough] corresponding cloud points... (only " << ppcloud.size() << ")" <<std::endl;
@@ -1922,7 +1935,7 @@ namespace bundler
 		}
 
 		float detR = fabs(determinant(Rs));
-		if(fabs(detR - 1.0) > 1e-06)
+		if(fabs(detR - 1.0) > 5e-07)
 		{
 			std::cerr << "[FindPoseEstimation] Rotation is incoherent. we should try a different base view..." << std::endl;
 			return false;
@@ -1960,7 +1973,7 @@ namespace bundler
 		RefineCamera(m_cameras[curr_num_cameras],ppcloud_final,imgpoints_final);
 		std::vector<int> inliers_final = ProjectMeanError(m_cameras[curr_num_cameras],ppcloud_final,imgpoints_final);
 
-		if(inliers_final.size() < 30 )
+		if(inliers_final.size() < 10 )
 		{
 			std::cerr << "[FindPoseEstimation] Couldn't find [enough] reliable corresponding （Only "<<inliers_final.size() << ")"<<std::endl;
 			return false;
@@ -2238,6 +2251,8 @@ namespace bundler
 		std::vector<Point2D> measurements;
 		std::vector<int> ptidx;
 		std::vector<int> camidx;
+		std::vector<int> keyidx;
+
 		std::vector<string> names;
 		std::vector<int> ptc;
 
@@ -2257,18 +2272,18 @@ namespace bundler
 
 			camera_data[i].SetMatrixRotation(m_cameras[i].R);
 			// -R(-R^T*t) = RR^T*t = t
-			t[0] = -(m_cameras[i].R[0]*m_cameras[i].t[0] + m_cameras[i].R[1]*m_cameras[i].t[1] + m_cameras[i].R[2]*m_cameras[i].t[2]);
-			t[1] = -(m_cameras[i].R[3]*m_cameras[i].t[0] + m_cameras[i].R[4]*m_cameras[i].t[1] + m_cameras[i].R[5]*m_cameras[i].t[2]);
-			t[2] = -(m_cameras[i].R[6]*m_cameras[i].t[0] + m_cameras[i].R[7]*m_cameras[i].t[1] + m_cameras[i].R[8]*m_cameras[i].t[2]);
+			//t[0] = -(m_cameras[i].R[0]*m_cameras[i].t[0] + m_cameras[i].R[1]*m_cameras[i].t[1] + m_cameras[i].R[2]*m_cameras[i].t[2]);
+			//t[1] = -(m_cameras[i].R[3]*m_cameras[i].t[0] + m_cameras[i].R[4]*m_cameras[i].t[1] + m_cameras[i].R[5]*m_cameras[i].t[2]);
+			//t[2] = -(m_cameras[i].R[6]*m_cameras[i].t[0] + m_cameras[i].R[7]*m_cameras[i].t[1] + m_cameras[i].R[8]*m_cameras[i].t[2]);
 
-			camera_data[i].SetTranslation(t);
+			//设置参数就是相机的空间坐标
+			camera_data[i].SetTranslation(m_cameras[i].t);
 
 			d[0] = d[1] = 0;
 			camera_data[i].SetNormalizedMeasurementDistortion(d[0]);
 
-			char ch[24];
-			sprintf(ch,"view%02d",i);
-			names[i] = std::string(ch);
+			int camera_order = good_views[i];
+			names[i] = m_feature_list[camera_order];
 		}
 
 		int npoint = M;
@@ -2312,8 +2327,8 @@ namespace bundler
 				measurements.push_back(Point2D(-x,-y));
 
 				camidx.push_back(cam_id);    //camera index
-				ptidx.push_back(i);        //point index
-
+				ptidx.push_back(i);          //point index
+				keyidx.push_back(key_idx);   // keypoint idx
 				nproj ++;
 			}		
 		}
@@ -2323,7 +2338,7 @@ namespace bundler
 
 		if(outpath == NULL) return;
 		if(strstr(outpath, ".nvm"))
-			SaveNVM(outpath, camera_data, point_data, measurements, ptidx, camidx, names, ptc); 
+			SaveNVM(outpath, camera_data, point_data, measurements, ptidx, camidx,keyidx, names, ptc); 
 
 	}
 

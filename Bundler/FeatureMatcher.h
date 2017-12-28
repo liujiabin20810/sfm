@@ -15,16 +15,16 @@ namespace bundler
 
 	class CPruneFeature
 	{
+	public:
+		CPruneFeature(std::vector<std::string> feature_list, std::vector<cv::Mat> mask_list );
+		
+		~CPruneFeature();
 
-		CPruneFeature(){};
-		~CPruneFeature(){};
+		bool read_sift_features();
 
-		void init_images_list(std::vector<std::string> images_list);
+		cv::Mat drawImageMatches(int _index_i, int _index_j);
 
-		void init_image_mask(std::vector<cv::Mat> image_masks);
-
-		bool read_sift_feature();
-
+	public:
 		//images num
 		int n_images;
 		// object mask
@@ -33,6 +33,16 @@ namespace bundler
 		std::map<std::pair<int, int>, std::vector<cv::DMatch> > prune_matches_matrix;
 		// prune keypoints with object mask
 		std::vector<std::vector<cv::KeyPoint>> prune_images_points;
+
+		std::map<std::pair<int, int>, cv::Mat > prune_F_matrix;
+
+		std::vector<std::string> m_feature_list;  //image name used to get sift feature name
+
+	private:
+
+		SIFT* m_sift;
+		
+
 	};
 
 	class CFeatureMatcher
@@ -81,8 +91,9 @@ namespace bundler
 		std::vector<std::vector<cv::Vec3b> > images_points_colors;
 		//images num
 		int n_images;
-		
-		std::vector<cv::Mat> m_images;
+
+		std::vector<std::string> m_images_list;
+
 	};
 }
 

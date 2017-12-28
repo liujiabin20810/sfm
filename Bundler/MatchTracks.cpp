@@ -193,9 +193,10 @@ namespace bundler
 
 		}
 
-
 		m_num_images = num_images;
 		m_matches_matrix = _matches_matrix;	
+		
+		// F matrixs not used
 		m_fmatrix = _fmatrix;
 
 		m_images =  _images;

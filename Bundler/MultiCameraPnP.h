@@ -17,19 +17,21 @@
 namespace bundler
 {
 	
-	class CMultiCameraPnP : public CFeatureMatcher
+	class CMultiCameraPnP : public CPruneFeature
 	{
 		
 	public:
 
-		CMultiCameraPnP(std::vector<std::string> images_list,std::vector<cv::Mat> images) : CFeatureMatcher(images_list,images){};
+		CMultiCameraPnP(char outpath[], std::vector<std::string> images_list,std::vector<cv::Mat> images) : CPruneFeature(images_list,images)
+		{
+			strcpy(m_path,outpath);
+		};
 
 		// set calibration matrix
 		void initCalibMatrix(cv::Mat _K, cv::Mat _distortion_coeff);
 
 		// Calculate all images match
 		bool match();
-
 		/**
 		* Get an initial 3D point cloud from 2 views only
 		*/
@@ -133,6 +135,8 @@ namespace bundler
 		int m_point_data_index;
 	private:
 
+		char m_path[256];
+
 		//BundleAdjuster mba;
 
 		camera_params_t *m_cameras;
@@ -149,7 +153,7 @@ namespace bundler
 
 		int m_first_view;
 		int m_second_view; //baseline's second view other to 0
-		std::set<int> done_views;
+		std::vector<int> done_views;
 		std::vector<int> good_views;
 
 		MatchTracks m_matchTracks;

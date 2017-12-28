@@ -34,7 +34,7 @@ bool LoadModelFile(const char* name, vector<CameraT>& camera_data, vector<Point3
               vector<Point2D>& measurements, vector<int>& ptidx, vector<int>& camidx, 
               vector<string>& names, vector<int>& ptc); 
 void SaveNVM(const char* filename, vector<CameraT>& camera_data, vector<Point3D>& point_data,
-              vector<Point2D>& measurements, vector<int>& ptidx, vector<int>& camidx, 
+              vector<Point2D>& measurements, vector<int>& ptidx, vector<int>& camidx, vector<int>& keyidx,
               vector<string>& names, vector<int>& ptc);
 void SaveBundlerModel(const char* filename, vector<CameraT>& camera_data, vector<Point3D>& point_data,
               vector<Point2D>& measurements, vector<int>& ptidx, vector<int>& camidx);
@@ -128,22 +128,27 @@ bool LoadNVM(ifstream& in, vector<CameraT>& camera_data, vector<Point3D>& point_
 
 
 void SaveNVM(const char* filename, vector<CameraT>& camera_data, vector<Point3D>& point_data,
-              vector<Point2D>& measurements, vector<int>& ptidx, vector<int>& camidx, 
+              vector<Point2D>& measurements, vector<int>& ptidx, vector<int>& camidx, vector<int>& keyidx,
               vector<string>& names, vector<int>& ptc)
 {
     std::cout << "Saving model to " << filename << "...\n"; 
     ofstream out(filename);
 
-    out << "NVM_V3_R9T\n" << camera_data.size() << '\n' << std::setprecision(12);
+    out << "NVM_V3\n" << camera_data.size() << '\n' << std::setprecision(12);
+	// camera name
     if(names.size() < camera_data.size()) names.resize(camera_data.size(),string("unknown"));
-    if(ptc.size() < 3 * point_data.size()) ptc.resize(point_data.size() * 3, 0);
+    //color
+	if(ptc.size() < 3 * point_data.size()) ptc.resize(point_data.size() * 3, 0);
 
     ////////////////////////////////////
     for(size_t i = 0; i < camera_data.size(); ++i)
     {
         CameraT& cam = camera_data[i];
         out << names[i] << ' ' << cam.GetFocalLength() << ' ';
-        for(int j  = 0; j < 9; ++j) out << cam.m[0][j] << ' ';
+        //for(int j  = 0; j < 9; ++j) out << cam.m[0][j] << ' ';
+		float q[4];
+		cam.GetQuaternionRotation(q);
+		for(int j  = 0; j < 4; ++j) out << q[j]<<" ";  // quaternion
         out << cam.t[0] << ' ' << cam.t[1] << ' ' << cam.t[2] << ' '
             << cam.GetNormalizedMeasurementDistortion() << " 0\n"; 
     }
@@ -162,10 +167,16 @@ void SaveNVM(const char* filename, vector<CameraT>& camera_data, vector<Point3D>
         
         out << (je - j) << ' ';
 
-        for(; j < je; ++j)    out << camidx[j] << ' ' << " 0 " << measurements[j].x << ' ' << measurements[j].y << ' ';
+        for(; j < je; ++j)    out << camidx[j] << ' ' << keyidx[j]<<' ' << measurements[j].x << ' ' << measurements[j].y << ' ';
         
         out << '\n';
     }
+
+	out<<"0\n";
+	out<<"#the last part of NVM file points to the PLY files\n";
+	out<<"#the first number is the number of associated PLY files\n";
+	out<<"#each following number gives a model-index that has PLY\n";
+	out<<"0";
 }
 
 
@@ -732,7 +743,7 @@ void SaveModelFile(const char* outpath, vector<CameraT>& camera_data, vector<Poi
 {
 	if(outpath == NULL) return;
     if(strstr(outpath, ".nvm"))
-            SaveNVM(outpath, camera_data, point_data, measurements, ptidx, camidx, names, ptc); 
+            SaveNVM(outpath, camera_data, point_data, measurements, ptidx, camidx,vector<int>(), names, ptc); 
 	else if(strstr(outpath, ".out"))
 			SaveBundlerOut(outpath, camera_data, point_data, measurements, ptidx, camidx, names, ptc);
        else      
