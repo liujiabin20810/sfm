@@ -55,6 +55,8 @@ namespace bundler
 	{
 		m_sift = new SiftGPU;
 		
+		m_good_match_threshold = 8;
+
 		int gpuType = m_sift->CreateContextGL();
 		
 		//std::cout << gpuType<< std::endl;
@@ -239,7 +241,7 @@ namespace bundler
 		}		
 
 		//std::cout<<"[F matrix] first inliers: "<< inliers_cnt <<std::endl;		
-		if(inliers_cnt < 30)
+		if(inliers_cnt < m_good_match_threshold)
 			return inliers;
 
 		queryCoord.clear();
@@ -302,8 +304,8 @@ namespace bundler
 #ifdef _DEBUG
 		std::cout<<"inliers num: "<<inliers_cnt <<std::endl;
 #endif
-		if(inliers_cnt > 0)
-			std::cout<<"inliers num: "<<inliers_cnt<<" re-project err: "<< sum_residual/inliers_cnt <<std::endl;
+//		if(inliers_cnt > m_good_match_threshold )
+//			std::cout<<"inliers num: "<<inliers_cnt<<" re-project err: "<< sum_residual/inliers_cnt <<std::endl;
 		
 		return inliers;
 	}
@@ -386,7 +388,7 @@ namespace bundler
 		int good_match_num = 0;
 		int j = 0;
 
-		if ( num_match > 30 )
+		if ( num_match > m_good_match_threshold )
 		{
 
 			mask = findInliers(queryKeypoints, trainedKeypoints, F, _buf, num_match);
@@ -401,7 +403,7 @@ namespace bundler
 				}
 			}
 
-			good_match_num = j;
+			good_match_num = j  >= m_good_match_threshold ? j : 0 ;
 		}
 
 #ifdef _DEBUG		
@@ -410,7 +412,7 @@ namespace bundler
 
 		delete[] _buf;
 
-		return good_match_num;
+		return good_match_num ;
 	}
 
 // 	std::vector<int> SIFT::match(std::vector<std::vector<SiftKeypoint>> Keypoints,std::vector<std::vector<float>> Descriptors,
@@ -478,7 +480,7 @@ namespace bundler
 			fp<<std::endl;
 			for (int k = 0; k < match_num; k++)
 				fp<<matches[k].trainIdx<<" ";
-
+			fp<<std::endl;
 			return true;
 		}
 		else
@@ -489,7 +491,19 @@ namespace bundler
 	{
 		int i,j;
 		int idx = 0;
+
+		//create .mat file 
+		std::string filename = m_strimgList[0];
+		int pos = filename.rfind("/");
+		if(pos < 0 )
+			return false;
+		std::string outname = filename.substr(0,pos) + "/full_match.txt";
+		std::ofstream fout(outname);
+		if(!fout.is_open())
+			return false;
+
 		for(i = 0 ; i < m_nimage-1; i++)
+		{
 			for (j = i+1 ; j < m_nimage; j++)
 			{
 				std::vector<cv::DMatch> _matches = matches_matrix[std::make_pair(i,j)];
@@ -497,32 +511,22 @@ namespace bundler
 				if(_matches.empty())
 					continue;
 
-				std::string filename = m_strimgList[i];
-				int pos = filename.rfind(".");
-				if(pos < 0)
-					return false;
-				std::string outname = filename.substr(0,pos);
-
-				char ch[24];
-				sprintf(ch,"_match%02d.mat",++idx);	
-				outname += std::string(ch);
-				std::ofstream fout(outname);
-
-				if(!fout.is_open())
-					continue;
-				
-				pos = m_strimgList[i].find("/");
+				pos = m_strimgList[i].rfind("/");
 				std::string img1,img2;
 				if(pos > 0)
 				{
 					img1 = m_strimgList[i].substr(pos+1);
 					img2 = m_strimgList[j].substr(pos+1);
-				}
+					fout <<img1<<" "<<img2<<" "<<_matches.size()<<std::endl;
 
-				fout <<img1<<" "<<img2<<" "<<_matches.size()<<std::endl;
-				writeSiftMatch(fout,_matches);
-				fout.close();
+					//std::cout<<img1<<" "<<img2<<std::endl;
+					writeSiftMatch(fout,_matches);
+				}
 			}
+
+		}
+
+		fout.close();
 		return true;
 	}
 	
@@ -546,7 +550,7 @@ namespace bundler
 //		n = (ch[15]<<24) + (ch[14]<<16) + (ch[13]<<8) + ch[12];
 //		dim =  ((ch[19]<<24) + (ch[18]<<16) + (ch[17]<<8) + ch[16]);
 
-		if(n != 5 || dim != 128 || (strcmp(name,"SIFT") != 0)  || (strcmp(version,"v4.0") != 0 ))
+		if(n != 5 || dim != 128 || (strcmp(name,"SIFT") != 0)  || (strcmp(version,"V4.0") != 0 ))
 		{
 			printf("%s,%s,%d,%d,%d\n",name,version,npoint,n,dim);
 			return false;
@@ -570,7 +574,6 @@ namespace bundler
 // 				printf("%d,%d,%d",int(color[0]),int(color[1]),int(color[2]));
 // 				printf("\t%f,\t%f,\t%f,\t%f\n",x,y,scale,orientation);
 // 			}
-
 			keys[i].x = x;
 			keys[i].y = y;
 			keys[i].s = scale;
@@ -587,7 +590,7 @@ namespace bundler
 			double _fsum = 0;
 			for(int j = 0; j < dim; j++)
 			{
-				char c = ( 128 + ch[j]);
+				char c = (uchar)ch[j];
 				_feature[j] = (float)c;
 				_fsum += _feature[j]*_feature[j];
 			}
@@ -618,7 +621,7 @@ namespace bundler
 	bool SIFT::writeSiftFeature(std::ofstream &fp , std::vector<SiftGPU::SiftKeypoint> keys,std::vector<float> descs)
 	{
 		char name[5] = "SIFT";
-		char version[5] = "v4.0";
+		char version[5] = "V4.0";
 		//int name = (int)('S'+ ('I'<<8)+('F'<<16)+('T'<<24));
 		//int version = (int)('V'+('4'<<8)+('.'<<16)+('0'<<24));
 		//(int)(0xff+('E'<<8)+('O'<<16)+('F'<<24));
@@ -665,22 +668,19 @@ namespace bundler
 				_feature[j] = f;
 				//_fsum += f*f;
 			}
-			// ¹éÒ»»¯ÌØÕ÷ _fsum = 1.0£»
-// 			_fsum = sqrt(_fsum);
-// 			printf("%lf\n",_fsum);
+
 			char *_chfeature = new char[dim];
 
 			for (int j=0; j < dim; j++)
 			{
 				_feature[j] = _feature[j]*512;
-				int tmp = (int)(_feature[j] - 128 ) ;
+				int tmp = (int)(_feature[j] + 0.5) ;
 				_chfeature[j] = (char)tmp;
-				if(tmp > maxData) maxData = tmp;
-				if(tmp < minData) minData = tmp;
+				//if(tmp > maxData) maxData = tmp;
+				//if(tmp < minData) minData = tmp;
 				//printf("%d, ",tmp);
 			}			
 			
-
 			fp.write(_chfeature,sizeof(char)*dim);
 
 			delete [] _chfeature;
@@ -689,7 +689,6 @@ namespace bundler
 		memcpy(ch,&eof_marker,4);
 		fp.write(ch,4);
 		//printf("descriptor range: %d,%d\n",maxData,minData);
-
 		return true;
 	}	
 	//Write the .sift files in C.WU's BINARY format

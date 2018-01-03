@@ -76,6 +76,7 @@ int _tmain(int argc, _TCHAR* argv[])
 	if(!fmatcher.match())
 		return -1;
 
+	
 	double t1 = getTickCount();
 
 	fmatcher.RecoverDepthFromImages();

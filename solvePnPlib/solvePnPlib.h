@@ -13,7 +13,7 @@
 #else
 #define SOLVEPNPLIB_API __declspec(dllimport)
 #endif
-
+#pragma once
 #include "Common.h"
 using namespace bundler;
 

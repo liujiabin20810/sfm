@@ -74,6 +74,8 @@ namespace bundler
 			SiftGPU *m_sift;
 			SiftMatchGPU *m_matcher;
 
+			int m_good_match_threshold;
+
 			int m_nimage ;
 			const char* m_imgList[50];
 			std::vector<std::string> m_strimgList;

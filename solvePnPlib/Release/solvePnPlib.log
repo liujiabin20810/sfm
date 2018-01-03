@@ -1,5 +1,5 @@
-﻿生成启动时间为 2017/12/25 16:41:42。
-     1>项目“E:\3D\Photograph\SFM\wokspace\Bundler\solvePnPlib\solvePnPlib.vcxproj”在节点 2 上(build 个目标)。
+﻿生成启动时间为 2018/1/3 19:04:14。
+     1>项目“E:\3D\Photograph\GIT\VSFM\sfm\solvePnPlib\solvePnPlib.vcxproj”在节点 2 上(build 个目标)。
      1>InitializeBuildStatus:
          正在创建“Release\solvePnPlib.unsuccessfulbuild”，因为已指定“AlwaysCreate”。
        ClCompile:
@@ -10,9 +10,9 @@
          D:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\bin\CL.exe /c /ID:\0penCV249\include /Isolvepnp /Isolvepnp\5point /Izlib\include /Zi /nologo /W3 /WX- /O2 /Oi /Oy- /GL /D WIN32 /D NDEBUG /D _WINDOWS /D _USRDLL /D SOLVEPNPLIB_EXPORTS /D _WINDLL /D _UNICODE /D UNICODE /Gm- /EHsc /MD /GS /Gy /fp:precise /Zc:wchar_t /Zc:forScope /Fo"Release\\" /Fd"Release\vc100.pdb" /Gd /TP /analyze- /errorReport:prompt Epipolar.cpp solvePnPlib.cpp
          Epipolar.cpp
          solvePnPlib.cpp
-     1>E:\3D\Photograph\SFM\wokspace\Bundler\solvePnPlib\solvepnp\defines.h(25): warning C4005: “MAX”: 宏重定义
+     1>E:\3D\Photograph\GIT\VSFM\sfm\solvePnPlib\solvepnp\defines.h(25): warning C4005: “MAX”: 宏重定义
                  D:\0penCV249\include\opencv2/core/types_c.h(291) : 参见“MAX”的前一个定义
-     1>E:\3D\Photograph\SFM\wokspace\Bundler\solvePnPlib\solvepnp\defines.h(26): warning C4005: “MIN”: 宏重定义
+     1>E:\3D\Photograph\GIT\VSFM\sfm\solvePnPlib\solvepnp\defines.h(26): warning C4005: “MIN”: 宏重定义
                  D:\0penCV249\include\opencv2/core/types_c.h(287) : 参见“MIN”的前一个定义
      1>solvePnPlib.cpp(244): warning C4244: “=”: 从“double”转换到“char”，可能丢失数据
      1>solvePnPlib.cpp(304): warning C4244: “参数”: 从“double”转换到“float”，可能丢失数据
@@ -37,7 +37,7 @@
      1>solvepnp\triangulate\triangulate.c(507): warning C4101: “proj_error”: 未引用的局部变量
      1>solvepnp\triangulate\triangulate.c(514): warning C4101: “j”: 未引用的局部变量
        Link:
-         D:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\bin\link.exe /ERRORREPORT:PROMPT /OUT:"E:\3D\Photograph\SFM\wokspace\Bundler\Release\solvePnPlib.dll" /INCREMENTAL:NO /NOLOGO /LIBPATH:D:\0penCV249\x86\vc10\lib /LIBPATH:solvePnp /LIBPATH:zlib\lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /MANIFEST /ManifestFile:"Release\solvePnPlib.dll.intermediate.manifest" /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /DEBUG /PDB:"E:\3D\Photograph\SFM\wokspace\Bundler\Release\solvePnPlib.pdb" /SUBSYSTEM:WINDOWS /OPT:REF /OPT:ICF /LTCG /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:"E:\3D\Photograph\SFM\wokspace\Bundler\Release\solvePnPlib.lib" /MACHINE:X86 /DLL Release\dllmain.obj
+         D:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\bin\link.exe /ERRORREPORT:PROMPT /OUT:"E:\3D\Photograph\GIT\VSFM\sfm\Release\solvePnPlib.dll" /INCREMENTAL:NO /NOLOGO /LIBPATH:D:\0penCV249\x86\vc10\lib /LIBPATH:solvePnp /LIBPATH:zlib\lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /MANIFEST /ManifestFile:"Release\solvePnPlib.dll.intermediate.manifest" /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /DEBUG /PDB:"E:\3D\Photograph\GIT\VSFM\sfm\Release\solvePnPlib.pdb" /SUBSYSTEM:WINDOWS /OPT:REF /OPT:ICF /LTCG /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:"E:\3D\Photograph\GIT\VSFM\sfm\Release\solvePnPlib.lib" /MACHINE:X86 /DLL Release\dllmain.obj
          Release\Epipolar.obj
          Release\solvePnPlib.obj
          Release\5point.obj
@@ -45,17 +45,17 @@
          Release\poly3.obj
          Release\triangulate.obj
          Release\stdafx.obj
-            正在创建库 E:\3D\Photograph\SFM\wokspace\Bundler\Release\solvePnPlib.lib 和对象 E:\3D\Photograph\SFM\wokspace\Bundler\Release\solvePnPlib.exp
+            正在创建库 E:\3D\Photograph\GIT\VSFM\sfm\Release\solvePnPlib.lib 和对象 E:\3D\Photograph\GIT\VSFM\sfm\Release\solvePnPlib.exp
          正在生成代码
          已完成代码的生成
-         solvePnPlib.vcxproj -> E:\3D\Photograph\SFM\wokspace\Bundler\Release\solvePnPlib.dll
+         solvePnPlib.vcxproj -> E:\3D\Photograph\GIT\VSFM\sfm\Release\solvePnPlib.dll
        Manifest:
-         C:\Program Files (x86)\Microsoft SDKs\Windows\v7.0A\bin\mt.exe /nologo /verbose /outputresource:"E:\3D\Photograph\SFM\wokspace\Bundler\Release\solvePnPlib.dll;#2" /manifest Release\solvePnPlib.dll.intermediate.manifest
+         C:\Program Files (x86)\Microsoft SDKs\Windows\v7.0A\bin\mt.exe /nologo /verbose /outputresource:"E:\3D\Photograph\GIT\VSFM\sfm\Release\solvePnPlib.dll;#2" /manifest Release\solvePnPlib.dll.intermediate.manifest
        FinalizeBuildStatus:
          正在删除文件“Release\solvePnPlib.unsuccessfulbuild”。
          正在对“Release\solvePnPlib.lastbuildstate”执行 Touch 任务。
-     1>已完成生成项目“E:\3D\Photograph\SFM\wokspace\Bundler\solvePnPlib\solvePnPlib.vcxproj”(build 个目标)的操作。
+     1>已完成生成项目“E:\3D\Photograph\GIT\VSFM\sfm\solvePnPlib\solvePnPlib.vcxproj”(build 个目标)的操作。
 
 生成成功。
 
-已用时间 00:00:57.18
+已用时间 00:00:53.55

@@ -241,6 +241,194 @@ namespace bundler
 		return 0;
 	}
 
+	void Utils::WriteBundleFile(const char *bundle_file, 
+		const std::vector<camera_params_t> &cameras,
+		std::vector<int> added_order,
+		const std::vector<PointData> &points)
+	{
+		FILE *f = fopen(bundle_file, "w");
+		if (f == NULL) {
+			printf("Error opening file %s for reading\n", bundle_file);
+			return;
+		}
+
+		int num_images = cameras.size();
+		int num_points = points.size();
+
+		/* Count the number of good images */
+		int num_good_images = 0;
+		int *map = new int[num_images];
+		for (int i = 0; i < num_images; i++) {
+			if (cameras[i].f == 0) {
+				map[i] = -1;                
+				continue;
+			}
+
+			map[i] = num_good_images;
+			num_good_images++;
+		}
+
+		printf("[WriteBundleFile] Writing %d images and %d points...\n",
+			num_good_images, num_points);
+
+		fprintf(f, "# Bundle file v0.3\n"); // Bundle Version
+		fprintf(f, "%d %d\n", num_good_images, num_points);    
+
+		/* Write cameras */
+		for (int i = 0; i < num_images; i++) {
+			if (cameras[i].f == 0)
+				continue;
+
+			/* Focal length */
+			fprintf(f, "%lf 0.0 0.0\n", cameras[i].f);
+
+			/* Rotation */
+			const double *R = cameras[i].R;
+			/* Translation */
+			const double *c = cameras[i].t;
+			double t[3]; 
+			t[0] = -(R[0]*c[0] + R[1]*c[1] + R[2]*c[2]);
+			t[1] = -(R[3]*c[0] + R[4]*c[1] + R[5]*c[2]);
+			t[2] = -(R[6]*c[0] + R[7]*c[1] + R[8]*c[2]);
+			
+			fprintf(f, "%lf %lf %lf\n%lf %lf %lf\n%lf %lf %lf\n", 
+				R[0], R[1], R[2], R[3], R[4], R[5], R[6], R[7], R[8]);
+			fprintf(f, "%lf %lf %lf\n", t[0], t[1], t[2]);
+		}
+
+		std::vector<int> pt_view_nums(num_good_images,0);
+		/* Write points */
+		for (int i = 0; i < num_points; i++) {
+			/* Position */
+			const double *pos = points[i].m_pos;
+			fprintf(f, "%lf %lf %lf\n", pos[0], pos[1], pos[2]);
+
+			/* Color */
+			const int *color = points[i].m_color;
+			fprintf(f, "%d %d %d\n", 
+				(color[0]), (color[1]), (color[2]));
+
+			int num_visible;
+			num_visible = points[i].m_views.size();
+			fprintf(f, "%d", num_visible);
+
+			for (int j = 0; j < num_visible; j++) {
+				int view = map[points[i].m_views[j].image];
+				assert(view >= 0 && view < num_good_images);
+				int key =  points[i].m_views[j].key;
+				double x = - (points[i].m_views[j].x);
+				double y = - (points[i].m_views[j].y);
+
+				pt_view_nums[view] += 1;
+				fprintf(f, " %d %d %0.2f %0.2f", view, key, x, y);
+			}
+
+			fprintf(f, "\n");
+		}
+//		for(int i = 0 ; i < num_good_images; i++)
+//			fprintf(f,"%d %d,",i,pt_view_nums[i]);
+
+		fprintf(f, "\n");
+		fclose(f);
+
+		delete [] map;
+	}
+
+	void Utils::WritePMVS(const char *output_path, 
+		std::vector<std::string> images, 
+		std::vector<camera_params_t> &cameras,
+		std::vector<int> added_order,
+		const std::vector<PointData> &points)
+	{
+		char buf[2048];
+		sprintf(buf, "%s/bundle.rd.out", output_path);    
+		WriteBundleFile(buf,cameras,added_order,points);
+
+		//////////////////////////////////////////////////////////////////////////
+		
+		//visualize
+		//txt
+		int num_files = (int) images.size();
+
+		sprintf(buf, "%s/list.txt", output_path);
+		FILE *f = fopen(buf, "w");
+
+		sprintf(buf,"%s/visualize/",output_path);
+		char buf2[256];
+		sprintf(buf2,"%s/txt/",output_path);
+		_mkdir(buf);
+		_mkdir(buf2);
+
+		int count = 0;
+		for (int i =0 ; i < num_files; i++)
+		{
+ 			if (cameras[i].f == 0.0)
+				continue;
+			cv::Mat im = cv::imread(images[i],1);
+			if(im.empty())
+				continue;
+			// list.txt
+			int pos = images[i].rfind(".");
+			char outbuf[128];
+			sprintf(outbuf,"visualize/%08d",count);
+			std::string  filename = std::string(outbuf) + images[i].substr(pos);
+			fprintf(f, "%s\n", filename.c_str());
+			//////////////////////////////////////////////////////////////////////////
+			// images
+			sprintf(outbuf,"%08d",count);
+			std::string out = std::string(buf) + std::string(outbuf) + images[i].substr(pos);
+			std::cout<< "save image :"<<out<<std::endl;
+			cv::imwrite(out,im);
+			//////////////////////////////////////////////////////////////////////////
+			// txt
+			char camerafile[256];
+			sprintf(camerafile, "%s%08d.txt",buf2, count);
+			FILE *camf = fopen(camerafile, "w");
+			assert(camf);
+
+			/* Compute the projection matrix */
+			double focal = cameras[i].f;
+			double *R = cameras[i].R;
+//		    double *t = cameras[i].t;
+			double t[3]; 
+
+			t[0] = -(R[0]*cameras[i].t[0] + R[1]*cameras[i].t[1] + R[2]*cameras[i].t[2]);
+			t[1] = -(R[3]*cameras[i].t[0] + R[4]*cameras[i].t[1] + R[5]*cameras[i].t[2]);
+			t[2] = -(R[6]*cameras[i].t[0] + R[7]*cameras[i].t[1] + R[8]*cameras[i].t[2]);
+
+			int w = im.cols;
+			int h = im.rows;
+			
+			double K[9] = 
+			{-focal, 0.0, 0.0,
+			0.0, focal, 0.0,
+			0.0, 0.0, 1.0 };
+
+			double Ptmp[12] = 
+			{ R[0], R[1], R[2], t[0],
+			R[3], R[4], R[5], t[1],
+			R[6], R[7], R[8], t[2] };
+
+			cv::Mat Kmat = cv::Mat(3,3,CV_64F,K);
+			cv::Mat Ptmat = cv::Mat(3,4,CV_64F,Ptmp);
+
+			cv::Mat_<double> Pmat = -Kmat*Ptmat;
+
+// 			matrix_product(3, 3, 3, 4, K, Ptmp, P);
+// 			matrix_scale(3, 4, P, -1.0, P);
+
+			fprintf(camf, "CONTOUR\n");
+			fprintf(camf, "%0.6f %0.6f %0.6f %0.6f\n", Pmat(0,0), Pmat(0,1), Pmat(0,2),  Pmat(0,3));
+			fprintf(camf, "%0.6f %0.6f %0.6f %0.6f\n", Pmat(1,0), Pmat(1,1), Pmat(1,2),  Pmat(1,3));
+			fprintf(camf, "%0.6f %0.6f %0.6f %0.6f\n", Pmat(2,0), Pmat(2,2), Pmat(2,3),  Pmat(2,3));
+
+			fclose(camf);
+			++count;
+		}
+
+		fclose(f);
+	}
+
 	void CMultiCameraPnP::initCalibMatrix(cv::Mat _K, cv::Mat _distortion_coeff)
 	{
 		int num = n_images;
@@ -499,8 +687,8 @@ namespace bundler
 				cp.m_pos[1] = pt_3d[i].y;
 				cp.m_pos[2] = pt_3d[i].z;
 				
-				cp.m_views.push_back(MatchIndex(ith_camera,queryIdxs[i]));
-				cp.m_views.push_back(MatchIndex(jth_camera,trainIdxs[i]));
+				//cp.m_views.push_back(ImageKey(ith_camera,queryIdxs[i]));
+				//cp.m_views.push_back(MatchIndex(jth_camera,trainIdxs[i]));
 				cp.m_ref_image = ith_camera;
 				int x = int(set_pt1.at<cv::Vec2f>(i)[0] + 0.5);
 				int y = int(set_pt1.at<cv::Vec2f>(i)[1] + 0.5);
@@ -584,8 +772,19 @@ namespace bundler
 				cp.m_pos[1] = X(1);
 				cp.m_pos[2] = X(2);
 
-				cp.m_views.push_back(MatchIndex(ith_camera,queryIdx));
-				cp.m_views.push_back(MatchIndex(jth_camera,trainIdx));
+				view_t v1,v2;
+				v1.image = ith_camera;
+				v1.key = queryIdx;
+				v1.x = GetImageKey(ith_camera,queryIdx).m_x;
+				v1.y = GetImageKey(ith_camera,queryIdx).m_y;
+
+				v2.image = jth_camera;
+				v2.key = trainIdx;
+				v2.x = GetImageKey(jth_camera,trainIdx).m_x;
+				v2.y = GetImageKey(jth_camera,trainIdx).m_y;
+				cp.m_views.push_back(v1);
+				cp.m_views.push_back(v2);
+
 				cp.m_ref_image = ith_camera;
 
 				cp.m_color[0] = (int)GetImageKey(ith_camera,queryIdx).m_b;
@@ -622,69 +821,6 @@ namespace bundler
 		//std::cout<<"[TriangulatePoints] minIdx =  "<<minIdx<<" maxIdx = "<<maxIdx<<std::endl;
 
 		return me[0];
-	}
-
-	bool CMultiCameraPnP::TriangulatePointsBetweenViews(int older_view,int working_view,std::vector<ImageKeyVector>& pt_view)
-	{
-		std::vector<PointData> new_triangulated;
-
-		//adding more triangulated points to general cloud
-		double reproj_error = TriangulatePoints(older_view,working_view,new_triangulated);
-	
-//#ifdef _DEBUG
-		std::cout << "[TriangulatePointsBetweenViews] triangulation reproj error " << reproj_error<<" /"<<new_triangulated.size()<< std::endl;
-//#endif //_DEBUG
-
-		if(reproj_error > 50.0 || reproj_error < 0.0) 
-		{
-			// somethign went awry, delete those triangulated points
-			std::cerr << "[TriangulatePointsBetweenViews] reprojection error."<<std::endl;
-
-			return false;
-		}
-		
-		std::vector<PointData>::iterator p3d_iter =  new_triangulated.begin();
-
-		std::ofstream fout("init_pair.txt");
-
-		int pt3d_num = 0;
-		for(;p3d_iter != new_triangulated.end(); ++p3d_iter )
-		{
-			
-			fout<<pt3d_num<<std::endl;
-			//add new cloud points
-			ImageKeyVector views = p3d_iter->m_views;
-
-			ImageKeyVector new_views;
-			
-			for (int j = 0; j < views.size(); j++)
-			{
-				int ith_camera = views[j].first;
-				int m_idx =  views[j].second;
-
-				GetImageKey(ith_camera,m_idx).m_extra = m_point_data_index;
-
-				int track_idx = GetImageKey(ith_camera,m_idx).m_track;
-				m_matchTracks.m_track_data[track_idx].m_extra = m_point_data_index;
-				
-				new_views.push_back(ImageKey(j, m_idx));
-				
-			}
-
-			pt_view.push_back(new_views);
-
-			m_point_data_index++;
-			fout <<p3d_iter->m_pos[0]<<" "<<p3d_iter->m_pos[1]<<" "<<p3d_iter->m_pos[2]<< std::endl;	
-			
-			m_point_data.push_back(*p3d_iter);
-			pt3d_num++;
-
-		}
-
-		fout.close();
-		std::cout<<"[TriangulatePointsBetweenViews] new pt3d num: "<<pt3d_num <<" totle pt3d num: "<<m_point_data_index<<std::endl;
-
-		return true;
 	}
 
 	double CMultiCameraPnP::TriangulatePoints(int ith_camera,int jth_camera,camera_params_t& camera1, camera_params_t& camera2,std::vector<PointData>& pointcloud)
@@ -762,8 +898,15 @@ namespace bundler
 				cp.m_pos[1] = X(1);
 				cp.m_pos[2] = X(2);
 
-				cp.m_views.push_back(MatchIndex(ith_camera,queryIdx));
-				cp.m_views.push_back(MatchIndex(jth_camera,trainIdx));
+				view_t v1,v2;
+				v1.image = ith_camera; v1.key = queryIdx;
+				v1.x = kp.x; v1.y = kp.y;
+
+				v2.image = jth_camera;  v2.key = trainIdx;
+				v2.x = kp1.x; 	v2.y = kp.y;
+
+				cp.m_views.push_back(v1);
+				cp.m_views.push_back(v2);
 				cp.m_ref_image = ith_camera;
 
 				cp.m_color[0] = (int)GetImageKey(ith_camera,queryIdx).m_b;
@@ -810,7 +953,7 @@ namespace bundler
 		std::cout << "[TriangulatePointsBetweenViews] triangulation reproj error " << reproj_error<<" /"<<new_triangulated.size()<< std::endl;
 		//#endif //_DEBUG
 
-		if(reproj_error > 30.0 || reproj_error < 1e-2 ) 
+		if(reproj_error > 20.0 || reproj_error < 1e-2 ) 
 		{
 			// somethign went awry, delete those triangulated points
 			std::cerr << "[TriangulatePointsBetweenViews] reprojection error."<<std::endl;
@@ -826,13 +969,13 @@ namespace bundler
 		for(;p3d_iter != new_triangulated.end(); ++p3d_iter )
 		{
 			//add new cloud points
-			ImageKeyVector views = p3d_iter->m_views;
+			std::vector<view_t> views = p3d_iter->m_views;
 			ImageKeyVector new_views;
 
 			for (int j = 0; j < views.size(); j++)
 			{
-				int ith_camera = views[j].first;
-				int m_idx =  views[j].second;
+				int ith_camera = views[j].image;
+				int m_idx =  views[j].key;
 
 				GetImageKey(ith_camera,m_idx).m_extra = m_point_data_index;
 
@@ -842,6 +985,7 @@ namespace bundler
 				new_views.push_back(ImageKey(j, m_idx));
 
 			}
+
 			pt_view.push_back(new_views);
 
 			m_point_data_index++;
@@ -986,6 +1130,18 @@ namespace bundler
 			cp.m_pos[0] = point.x;
 			cp.m_pos[1] = point.y;
 			cp.m_pos[2] = point.z;
+
+			view_t v1,v2;
+			v1.image = i_best; v1.key = key_idx1;
+			v1.x = GetImageKey(i_best,key_idx1).m_x - m_cx;
+			v1.y = GetImageKey(i_best,key_idx1).m_y - m_cy;
+
+			v2.image = j_best;  v2.key = key_idx2;
+			v2.x = GetImageKey(j_best,key_idx2).m_x - m_cx;
+			v2.y = GetImageKey(j_best,key_idx2).m_y - m_cy;
+
+			cp.m_views.push_back(v1);
+			cp.m_views.push_back(v2);
 
 			cp.m_ref_image = i_best;
 
@@ -1533,7 +1689,7 @@ namespace bundler
 		good_views.push_back(m_first_view);
 		good_views.push_back(m_second_view);
 
- 		AdjustCurrentBundle(point_views);
+ 		AdjustCurrentBundle(point_views,false);
 		char tmp[128];
 		sprintf(tmp,"/00_output[%d,%d].txt",m_first_view,m_second_view);
 		strcat(ch,tmp);
@@ -1552,8 +1708,7 @@ namespace bundler
 
 				if(it != done_views.end()) 
 					continue; //already done with this view				
-				if(_i == 19)
-					continue;
+				
 				/* Find the tracks seen by this image */
 				std::vector<int> & tracks = m_matchTracks.m_image_data[_i].m_visible_points;
 
@@ -1598,8 +1753,8 @@ namespace bundler
 				continue;
 			good_views.push_back(i);
 
-			CheckPointKeyConsistency(point_views,good_views);
-			AdjustCurrentBundle(point_views);
+			//CheckPointKeyConsistency(point_views,good_views);
+			AdjustCurrentBundle(point_views,false);
 // 			sprintf(ch,"basecloud/01_output[%d,%d].txt",m_first_view,m_second_view);
 // 			WriteCloudPoint(ch,0);
 
@@ -1625,7 +1780,7 @@ namespace bundler
 				MatchIndex idx = GetMatchIndex(view,i);
 				std::vector<KeypointMatch> &list = m_matchTracks.m_matches_table.GetMatchList(idx);
 				int match_num = list.size();
-				if( match_num < 20 )
+				if( match_num < 8 )
 				{
 					m_matchTracks.m_matches_table.ClearMatch(GetMatchIndex(view, i));
 					continue;
@@ -1664,7 +1819,14 @@ namespace bundler
 						}
 						// the pt_view created after Triangulate, add match view
 						if(!add_view)
+						{	
 							m_view.push_back(ImageKey(camera_id,key_idx));
+							view_t v;
+							v.image = view; v.key = key_idx;
+							v.x = GetImageKey(view,key_idx).m_x - m_cx;
+							v.y = GetImageKey(view,key_idx).m_y - m_cy;
+							m_point_data[pt_idx].m_views.push_back(v);
+						}
 
 						continue;
 					}
@@ -1698,10 +1860,10 @@ namespace bundler
 					int track_idx = GetImageKey(i,m_idx2).m_track;
 					m_matchTracks.m_track_data[track_idx].m_extra = m_point_data_index;
 
-					ImageKeyVector view;
-					view.push_back(ImageKey(camera_id,m_idx1));
-					view.push_back(ImageKey(curr_num_cameras-1,m_idx2));
-					point_views.push_back(view);
+					ImageKeyVector pt_view;
+					pt_view.push_back(ImageKey(camera_id,m_idx1));
+					pt_view.push_back(ImageKey(curr_num_cameras-1,m_idx2));
+					point_views.push_back(pt_view);
 
 					cv::Point3f point = pt3d[j];
 					PointData cp;
@@ -1709,6 +1871,18 @@ namespace bundler
 					cp.m_pos[0] = point.x;
 					cp.m_pos[1] = point.y;
 					cp.m_pos[2] = point.z;
+
+					view_t v1 ,v2;
+					v1.image = view; v1.key = m_idx1;
+					v1.x = GetImageKey(view,m_idx1).m_x - m_cx;
+					v1.y = GetImageKey(view,m_idx1).m_y - m_cy;
+
+					v2.image = i ; v2.key = m_idx2;
+					v2.x = GetImageKey(i,m_idx2).m_x - m_cx;
+					v2.y = GetImageKey(i,m_idx2).m_y - m_cy;
+
+					cp.m_views.push_back(v1);
+					cp.m_views.push_back(v2);
 
 					cp.m_ref_image = i;
 
@@ -1734,7 +1908,7 @@ namespace bundler
 			std::cout<<"[RecoverDepthFromImages] Added cloud points: " <<added_point_num<<std::endl;
 			
 			//CheckPointKeyConsistency(point_views,good_views);
-			AdjustCurrentBundle(point_views);
+			AdjustCurrentBundle(point_views,false);
 
 			if(added_point_num == 0)
 				continue;
@@ -1748,18 +1922,21 @@ namespace bundler
 		}
 		
 		//CheckPointKeyConsistency(point_views,good_views);
-		//AdjustCurrentBundle(point_views);
+		//AdjustCurrentBundle(point_views,true);
 
 		sprintf(tmp,"/full_output.txt");
 		strcpy(ch,m_path);
 		strcat(ch,tmp);
 		WriteCloudPoint(ch,0);
 
+		Bundler2PMVS(point_views);
 		
 		sprintf(tmp,"/model.nvm");
 		strcpy(ch,m_path);
 		strcat(ch,tmp);
 		SaveModelFile(ch,point_views);
+
+		
 
 		std::cout << "======================================================================\n";
 		std::cout << "========================= Depth Recovery DONE ========================\n";
@@ -1892,7 +2069,7 @@ namespace bundler
 
 		//std::cout<<"[FindPoseEstimation]: 3d: "<<ppcloud.size()<<" 2d: "<<imgpoints.size()<<std::endl;
 
-		if(ppcloud.size() <= 10 || imgpoints.size() <= 10 || ppcloud.size() != imgpoints.size())
+		if(ppcloud.size() <= 7 || imgpoints.size() <= 7 || ppcloud.size() != imgpoints.size())
 		{ 
 			//something went wrong aligning 3D to 2D points..
 			std::cerr << "[FindPoseEstimation] Couldn't find [enough] corresponding cloud points... (only " << ppcloud.size() << ")" <<std::endl;
@@ -1973,7 +2150,7 @@ namespace bundler
 		RefineCamera(m_cameras[curr_num_cameras],ppcloud_final,imgpoints_final);
 		std::vector<int> inliers_final = ProjectMeanError(m_cameras[curr_num_cameras],ppcloud_final,imgpoints_final);
 
-		if(inliers_final.size() < 10 )
+		if(inliers_final.size() < 8 )
 		{
 			std::cerr << "[FindPoseEstimation] Couldn't find [enough] reliable corresponding （Only "<<inliers_final.size() << ")"<<std::endl;
 			return false;
@@ -1990,7 +2167,15 @@ namespace bundler
 			int key_idx = pt2d_index_final[idx1];
 			//2d image point  correspond to 3d object point idx
 			img_data.m_keys[key_idx].m_extra = pt_idx;
+			
 			pt_view[pt_idx].push_back(ImageKey(curr_num_cameras, key_idx));
+			view_t v;
+			v.image = working_view; v.key = key_idx;
+			v.x = GetImageKey(working_view,key_idx).m_x - m_cx;
+			v.y = GetImageKey(working_view,key_idx).m_y - m_cy;
+
+			m_point_data[pt_idx].m_views.push_back(v);
+
 			//3d object point correspond to 2d image view and the image point
 			// Test whether have the same track
 // 			int m_idx1 = pt_view[pt3d_index[inlier_idx]][0].second;
@@ -2107,12 +2292,11 @@ namespace bundler
 			t[1] = -(m_cameras[i].R[3]*m_cameras[i].t[0] + m_cameras[i].R[4]*m_cameras[i].t[1] + m_cameras[i].R[5]*m_cameras[i].t[2]);
 			t[2] = -(m_cameras[i].R[6]*m_cameras[i].t[0] + m_cameras[i].R[7]*m_cameras[i].t[1] + m_cameras[i].R[8]*m_cameras[i].t[2]);
 
-			std::cout<<i<<" "<<m_cameras[i].t[0]<<" "<<m_cameras[i].t[1]<<" "<<m_cameras[i].t[2]<<std::endl;
-
+			//std::cout<<i<<" "<<m_cameras[i].t[0]<<" "<<m_cameras[i].t[1]<<" "<<m_cameras[i].t[2]<<std::endl;
 			_cam.SetTranslation(t);
-
 			//distortion
-			d[0] = d[1] = 0;
+			d[0] = m_cameras[i].k[0];
+			d[1] = m_cameras[i].k[1];
 			_cam.SetNormalizedMeasurementDistortion(d[0]);
 
 			camera_data[i] = _cam;
@@ -2155,7 +2339,6 @@ namespace bundler
 				nproj ++;
 			}		
 		}
-
 	}
 
 	void CMultiCameraPnP::GetBundleAdjustData(std::vector<CameraT> &camera_data,std::vector<Point3D>& point_data,
@@ -2168,19 +2351,21 @@ namespace bundler
 		for(int i = 0; i < N; i++)
 		{
 			float focal_length = camera_data[i].GetFocalLength();
-			std::cout<<"focal lenght: "<<focal_length<<std::endl;
+			//std::cout<<"focal lenght: "<<focal_length<<std::endl;
 
 			m_cameras[i].f = focal_length;
 
 			camera_data[i].GetMatrixRotation(m_cameras[i].R);
 			camera_data[i].GetCameraCenter(m_cameras[i].t);//output is the -R^T*t
 
+			m_cameras[i].k[0] = camera_data[i].GetNormalizedMeasurementDistortion();
+
 			//-R^T*t
 			//m_cameras[i].t[0] = -(m_cameras[i].R[0]*t[0] + m_cameras[i].R[3]*t[1] + m_cameras[i].R[6]*t[2]);
 			//m_cameras[i].t[1] = -(m_cameras[i].R[1]*t[0] + m_cameras[i].R[4]*t[1] + m_cameras[i].R[7]*t[2]);
 			//m_cameras[i].t[2] = -(m_cameras[i].R[2]*t[0] + m_cameras[i].R[5]*t[1] + m_cameras[i].R[8]*t[2]);
 
-			std::cout<<i<<" "<<m_cameras[i].t[0]<<" "<<m_cameras[i].t[1]<<" "<<m_cameras[i].t[2]<<std::endl;
+			//std::cout<<i<<" "<<m_cameras[i].t[0]<<" "<<m_cameras[i].t[1]<<" "<<m_cameras[i].t[2]<<std::endl;
 		}
 
 		for (int i = 0 ; i < M; i++)
@@ -2195,7 +2380,7 @@ namespace bundler
 
 	}
 
-	void CMultiCameraPnP::AdjustCurrentBundle(std::vector<ImageKeyVector> pt_views)
+	void CMultiCameraPnP::AdjustCurrentBundle(std::vector<ImageKeyVector> pt_views, bool _debug)
 	{
 		std::vector<CameraT> camera_data;
 		std::vector<Point3D> point_data;
@@ -2207,9 +2392,73 @@ namespace bundler
 
 		SetBundleAdjustData(camera_data,point_data,measurements,ptidx,camidx,pt_views);
 
-		mba.RunBundleAdjustment(camera_data,point_data,measurements,ptidx,camidx);
+		if(!_debug)
+		{
+			mba.RunBundleAdjustment(camera_data,point_data,measurements,ptidx,camidx);
 
-		GetBundleAdjustData(camera_data,point_data,measurements,ptidx,camidx);
+			GetBundleAdjustData(camera_data,point_data,measurements,ptidx,camidx);
+
+			return;
+		}
+			
+		//////////////////////////////////////////////////////////////////////////
+		// compute projection error
+		std::vector<float> reproErrs(curr_num_cameras,0);
+		std::vector<int> counts(curr_num_cameras,0);
+
+		for (int i =0; i < ptidx.size(); i++)
+		{
+			//std::cout<<i<<" "<<camidx[i]<<" "<<ptidx[i]<<std::endl;
+			
+			int idx = ptidx[i];
+			Point3D point3d = point_data[idx];
+			Point2D point2d = measurements[i];
+			assert(camidx[i] >= 0 && camidx[i] < curr_num_cameras);
+
+			CameraT cam = camera_data[camidx[i]];
+			
+			float focal_length = cam.GetFocalLength();
+			double R[9] ;
+			double t1[3],t2[3] ;
+			double c[3];
+			cam.GetMatrixRotation(R);
+			cam.GetTranslation(t1);
+			cam.GetCameraCenter(c);
+
+			t2[0] = -(R[0]*c[0] + R[1]*c[1] + R[2]*c[2]);
+			t2[1] = -(R[3]*c[0] + R[4]*c[1] + R[5]*c[2]);
+			t2[2] = -(R[6]*c[0] + R[7]*c[1] + R[8]*c[2]);
+
+			std::cout<<t2[0]<<" "<<t1[0]<<" "<<t2[1]<<" "<<t1[1]<<" "<<t2[2]<<" "<<t1[2]<<std::endl;
+
+			cv::Mat_<double> K = (cv::Mat_<double>(3, 3)<<
+								focal_length,	0.0,	0.0,
+								0.0,	focal_length,	0.0,
+								0.0,	0.0,	1.0);
+		
+			cv::Mat_<double> P = (cv::Mat_<double>(3,4) <<
+									R[0], R[1], R[2], t2[0],
+									R[3], R[4], R[5], t2[1],
+									R[6], R[7], R[8], t2[2]);
+			
+			cv::Mat_<double> X = (cv::Mat_<double>(4,1)<< (point3d.xyz[0]),point3d.xyz[1],point3d.xyz[2],1.0);
+			cv::Mat_<double> xt = -K*(P*X);
+
+			float px =   xt(0)/xt(2);
+			float py =	 xt(1)/xt(2);
+
+			float dist = (px - point2d.x)*(px - point2d.x) + (py - point2d.y)*(py - point2d.y);
+
+			reproErrs[camidx[i]] += sqrtf(dist);
+			counts[camidx[i]] ++;
+
+		}
+
+		for (int i=0; i <curr_num_cameras; i++ )
+		{
+			cout<< counts[i] <<" "<<reproErrs[i]/counts[i]<<endl;
+		}
+
 	}
 
 	// check the point_view is correct or not.
@@ -2340,6 +2589,224 @@ namespace bundler
 		if(strstr(outpath, ".nvm"))
 			SaveNVM(outpath, camera_data, point_data, measurements, ptidx, camidx,keyidx, names, ptc); 
 
+	}
+
+#define Vx(v) (v)[0]
+#define Vy(v) (v)[1]
+#define Vz(v) (v)[2]
+
+	void CMultiCameraPnP::DumpOutputFile(const char *output_dir, const char *filename, 
+		int num_points,	std::vector<int> order, 
+		camera_params_t *cameras, 
+		std::vector<PointData>& points,
+		std::vector<ImageKeyVector> &pt_views)
+	{
+		int num_visible_points = 0;
+		for (int i = 0; i < num_points; i++) {
+			if (pt_views[i].size() > 0)
+				num_visible_points++;
+		}
+
+		char buf[256];
+		sprintf(buf, "%s/%s", output_dir, filename);
+
+		FILE *f = fopen(buf, "w");
+		if (f == NULL) {
+			printf("Error opening file %s for writing\n", buf);
+			return;
+		}
+
+		/* Print version number */
+		fprintf(f, "# Bundle file v0.3\n");
+		/* Print number of cameras and points */
+		fprintf(f, "%d %d\n", n_images, num_visible_points);
+
+		/* Dump cameras */
+		for (int i = 0; i < n_images; i++) {
+
+			int idx = -1;
+			for (int j = 0; j < curr_num_cameras; j++) {
+				if (order[j] == i) {
+					idx = j;
+					break;
+				}
+			}
+
+			if (idx == -1) {
+				fprintf(f, "0 0 0\n");
+				fprintf(f, "0 0 0\n0 0 0\n0 0 0\n0 0 0\n");
+			} else {
+				fprintf(f, "%0.10e %0.10e %0.10e\n", 
+					cameras[idx].f, cameras[idx].k[0], cameras[idx].k[1]);
+
+				fprintf(f, "%0.10e %0.10e %0.10e\n", 
+					cameras[idx].R[0],cameras[idx].R[1], cameras[idx].R[2]);
+				fprintf(f, "%0.10e %0.10e %0.10e\n", 
+					cameras[idx].R[3],cameras[idx].R[4], cameras[idx].R[5]);
+				fprintf(f, "%0.10e %0.10e %0.10e\n", 
+					cameras[idx].R[6],cameras[idx].R[7], cameras[idx].R[8]);
+
+				double t[3];
+				//matrix_product(3, 3, 3, 1, cameras[idx].R, cameras[idx].t, t);
+				//matrix_scale(3, 1, t, -1.0, t);
+				t[0] = -(cameras[idx].R[0]*cameras[idx].t[0] + cameras[idx].R[1]*cameras[idx].t[1] + cameras[idx].R[2]*cameras[idx].t[2]);
+				t[1] = -(cameras[idx].R[3]*cameras[idx].t[0] + cameras[idx].R[4]*cameras[idx].t[1] + cameras[idx].R[5]*cameras[idx].t[2]);
+				t[2] = -(cameras[idx].R[6]*cameras[idx].t[0] + cameras[idx].R[7]*cameras[idx].t[1] + cameras[idx].R[8]*cameras[idx].t[2]);
+
+				fprintf(f, "%0.10e %0.10e %0.10e\n", t[0], t[1], t[2]);
+			}
+		}
+
+		/* Dump points */
+		for (int i = 0; i < num_points; i++) {
+			int num_visible = (int) pt_views[i].size();
+
+			if (num_visible > 0) {
+
+				/* Position */
+				fprintf(f, "%0.10e %0.10e %0.10e\n", 
+					Vx(points[i].m_pos), Vy(points[i].m_pos), Vz(points[i].m_pos));
+
+				/* Color */
+				fprintf(f, "%d %d %d\n", 
+					Vx(points[i].m_color), 
+					Vy(points[i].m_color), 
+					Vz(points[i].m_color));
+
+				int num_visible = (int) pt_views[i].size();
+				fprintf(f, "%d", num_visible);
+				for (int j = 0; j < num_visible; j++) {
+					int img = order[pt_views[i][j].first];
+					int key = pt_views[i][j].second;
+
+					double x = - (GetImageKey(img,key).m_x - m_cx);
+					double y = - (GetImageKey(img,key).m_y - m_cy);
+
+					fprintf(f, " %d %d %0.4f %0.4f", img, key, x, y);
+				}
+
+				fprintf(f, "\n");
+			}
+		}
+
+		fclose(f);
+	}
+
+	void CMultiCameraPnP::Bundler2PMVS(std::vector<ImageKeyVector> pt_view)
+	{
+		char filename[128] = "bundle.out";
+		DumpOutputFile(m_path,filename,m_point_data_index,good_views,m_cameras,m_point_data,pt_view);
+
+		sprintf(filename, "%s/list.txt", m_path);
+		FILE *f = fopen(filename, "w");
+		for (int i =0; i < n_images; i++)
+		{
+			fprintf(f,"%s\n",m_feature_list[i].c_str());
+		}
+
+		fclose(f);
+
+		// cameras 总数与图片相等，利用good_views的编号初始化对应相机内参
+		std::vector<camera_params_t> cameras;
+		cameras.resize(n_images);
+		std::vector<int> added_order;
+		std::vector<int> map(n_images);
+		int k = 0;
+		for (int i = 0; i < n_images; i++)
+		{
+			std::vector<int>::iterator it = find(good_views.begin(),good_views.end(),i);
+			if(it == good_views.end())
+			{
+				InitializeCameraParams(cameras[i]);
+				map[i] = -1;
+// 				cameras[i].R[0] = 1.0;  cameras[i].R[1] = 0.0;  cameras[i].R[2] = 0.0;
+// 				cameras[i].R[3] = 0.0;  cameras[i].R[4] = 1.0;  cameras[i].R[5] = 0.0;
+// 				cameras[i].R[6] = 0.0;  cameras[i].R[7] = 0.0;  cameras[i].R[8] = 1.0;
+// 				cameras[i].t[0] = 0.0;
+// 				cameras[i].t[1] = 0.0;
+// 				cameras[i].t[2] = 0.0;
+			}
+			else
+			{
+				int idx = (it - good_views.begin());
+				cameras[i] = m_cameras[idx];
+				added_order.push_back(idx);
+				map[i] = k;
+				k++;
+			}
+		}
+		// 每张图片对应的添加顺序【added_order[0] 表示第一张图片在good_view中的位置 】
+		for (int i = 0; i < added_order.size(); i++)
+			std::cout<<added_order[i]<<" ";
+		std::cout<<std::endl;
+		// good_view 添加的顺序 【good_views[0] 表示第一次添加的是哪一幅图片 】
+		for (int i = 0; i < good_views.size(); i++)
+			std::cout<<i<<" "<<good_views[i]<<", ";
+		std::cout<<std::endl;
+
+		// 
+		std::vector<float> reproErrs(curr_num_cameras,0);
+		std::vector<int> counts(curr_num_cameras,0);
+		for(int i = 0; i < m_point_data_index ; i++)
+		{
+			
+			PointData point = m_point_data[i];
+			cv::Mat_<double> X = (cv::Mat_<double>(4,1)<<Vx(point.m_pos),Vy(point.m_pos),Vz(point.m_pos),1.0);
+
+			std::vector<view_t> m_views = point.m_views;
+			for(int j = 0 ; j < m_views.size(); j++)
+			{
+				int image = map[m_views[j].image] ;// 按原始照片列表顺序		
+				
+				if(image < 0 || image >= curr_num_cameras)
+				{
+					std::cout<<"======================error1=============="<<std::endl;
+					break;
+				}
+				camera_params_t cam = cameras[m_views[j].image];
+				
+				cv::Mat_<double> K = (cv::Mat_<double>(3, 3)<<
+									cam.f,	0.0,	0.0,
+									0.0,	cam.f,	0.0,
+									0.0,	0.0,	1.0);
+				double *R = cam.R;
+				double *c = cam.t;  //camera center
+				double t[3];
+				t[0] = -(R[0]*c[0] + R[1]*c[1] + R[2]*c[2]);
+				t[1] = -(R[3]*c[0] + R[4]*c[1] + R[5]*c[2]);
+				t[2] = -(R[6]*c[0] + R[7]*c[1] + R[8]*c[2]);
+
+				cv::Mat_<double> P = (cv::Mat_<double>(3,4) <<
+									  R[0], R[1], R[2], t[0],
+									  R[3], R[4], R[5], t[1],
+									  R[6], R[7], R[8], t[2]);
+				
+				cv::Mat_<double> xt = K*(P*X);
+
+				float px =   xt(0)/xt(2);
+				float py =	 xt(1)/xt(2);
+
+				int im_idx = m_views[j].image;
+				int key_idx = m_views[j].key;
+
+				int x = GetImageKey(im_idx,key_idx).m_x - m_cx;
+				int y = GetImageKey(im_idx,key_idx).m_y - m_cy;
+
+				float dist = (-x - px)*(-x - px) + (-y - py)*(-y - py);
+				//cout<<x<<" "<<y<<" "<<px<<" "<<py<<endl;
+
+				reproErrs[image] += sqrtf(dist);
+				counts[image]++;
+			}
+		}
+
+		for (int i=0; i <curr_num_cameras; i++ )
+		{
+			cout<< counts[i] <<" "<<reproErrs[i]/counts[i]<<endl;
+		}
+
+		Utils utl;
+		utl.WritePMVS(m_path,m_feature_list,cameras,added_order,m_point_data);
 	}
 
 	CMultiCameraPnP::~CMultiCameraPnP()

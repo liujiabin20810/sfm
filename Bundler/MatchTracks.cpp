@@ -1,4 +1,4 @@
-
+#pragma once
 /*MatchTracks.cpp*/
 /* Code for processing matches and tracks */
 #include "MatchTracks.h"
@@ -826,7 +826,7 @@ namespace bundler
 	{
 		int num_images = m_num_images;
 		
-// 		const char *filename = "constraints.txt";
+		const char *filename = "constraints.txt";
 // 		if (!overwrite)
 // 		{
 // 			
@@ -838,7 +838,7 @@ namespace bundler
 // 
 // 				return;
 // 			}
-// 		}
+	
 		CreateMatchTable();
 
 		if(num_images < 40000)
@@ -909,7 +909,7 @@ namespace bundler
 		if(num_images < 40000)
             WriteMatchTable(".corresp");
 
-		//WriteGeometricConstraints(filename);
+		WriteGeometricConstraints(filename);
 
 	}
 

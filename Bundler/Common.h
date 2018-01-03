@@ -43,6 +43,14 @@ namespace bundler
 		typedef std::pair<int,int> ImageKey;
 		typedef std::vector<ImageKey> ImageKeyVector;
 
+		typedef struct
+		{
+			int image;
+			int key;
+			double x;
+			double y;
+		} view_t;
+
 		/* Data for 3D points */
 		class PointData
 		{
@@ -64,7 +72,7 @@ namespace bundler
 			int m_color[3]; /* Color of the point */
 			double m_conf;    /* Confidence in this point */
 
-			ImageKeyVector m_views;  /* View / keys corresponding to this point */
+			std::vector<view_t> m_views;  /* View / keys corresponding to this point */
 			bool m_fixed;      /* Should this point be fixed during bundle
 					* adjustment? */
 
@@ -72,7 +80,6 @@ namespace bundler
 			int m_num_vis;     /*number of images that see this point*/
 			int m_ref_image;   /* Reference image */
 		};
-
 
 	class Utils
 	{
@@ -86,8 +93,22 @@ namespace bundler
 		int open_imgs_dir(std::string dir_name_);
 
 		int findImage(char strPath[]);
-
 		int loadCalibMatrix(char strPath[]);
+
+		void WriteBundleFile(const char *bundle_file, 
+			const std::vector<camera_params_t> &cameras,
+			std::vector<int> added_order,
+			const std::vector<PointData> &points);
+
+		void ReadBundleFile(const char *bundle_file, 
+			std::vector<camera_params_t> &cameras,
+			std::vector<PointData> &points, double &bundle_version);
+
+		void WritePMVS(const char *output_path, 
+			std::vector<std::string> images, 
+			std::vector<camera_params_t> &cameras,
+			std::vector<int> added_order,
+			const std::vector<PointData> &points);
 
 		std::vector<cv::Mat> m_images;
 		std::vector<std::string>  m_imageNameList;

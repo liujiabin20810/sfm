@@ -1,11 +1,104 @@
-﻿生成启动时间为 2017/12/28 12:56:51。
+﻿生成启动时间为 2018/1/3 19:03:16。
      1>项目“E:\3D\Photograph\GIT\VSFM\sfm\Bundler\Bundler.vcxproj”在节点 2 上(build 个目标)。
      1>InitializeBuildStatus:
          正在创建“Release\Bundler.unsuccessfulbuild”，因为已指定“AlwaysCreate”。
        ClCompile:
          所有输出均为最新。
-         D:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\bin\CL.exe /c /IE:\3D\Photograph\GIT\VSFM\sfm\siftgpu /ID:\0penCV249\include /IE:\3D\Photograph\GIT\VSFM\sfm\Bundler\3rdparty\pba /IE:\3D\Photograph\GIT\VSFM\sfm\Bundler\3rdparty\solvePnP /IE:\3D\Photograph\GIT\VSFM\sfm\Bundler\3rdparty\glew\include /Zi /nologo /W3 /WX- /O2 /Oi /Oy- /GL /D WIN32 /D NDEBUG /D _CONSOLE /D _MBCS /Gm- /EHsc /MD /GS /Gy /fp:precise /Zc:wchar_t /Zc:forScope /openmp- /Fo"Release\\" /Fd"Release\vc100.pdb" /Gd /TP /analyze- /errorReport:prompt ..\siftgpu\SIFTGPU.cpp
-         SIFTGPU.cpp
+         D:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\bin\CL.exe /c /IE:\3D\Photograph\GIT\VSFM\sfm\siftgpu /ID:\0penCV249\include /IE:\3D\Photograph\GIT\VSFM\sfm\Bundler\3rdparty\pba /IE:\3D\Photograph\GIT\VSFM\sfm\Bundler\3rdparty\solvePnP /IE:\3D\Photograph\GIT\VSFM\sfm\Bundler\3rdparty\glew\include /Zi /nologo /W3 /WX- /O2 /Oi /Oy- /GL /D WIN32 /D NDEBUG /D _CONSOLE /D _MBCS /Gm- /EHsc /MD /GS /Gy /fp:precise /Zc:wchar_t /Zc:forScope /openmp- /Fo"Release\\" /Fd"Release\vc100.pdb" /Gd /TP /analyze- /errorReport:prompt MultiCameraPnP.cpp
+         MultiCameraPnP.cpp
+     1>e:\3d\photograph\git\vsfm\sfm\bundler\MatchTracks.h(239): warning C4172: 返回局部变量或临时变量的地址
+     1>MultiCameraPnP.cpp(438): warning C4244: “=”: 从“double”转换到“float”，可能丢失数据
+     1>MultiCameraPnP.cpp(440): warning C4244: “=”: 从“double”转换到“float”，可能丢失数据
+     1>MultiCameraPnP.cpp(441): warning C4244: “=”: 从“double”转换到“float”，可能丢失数据
+     1>MultiCameraPnP.cpp(443): warning C4244: “=”: 从“double”转换到“float”，可能丢失数据
+     1>MultiCameraPnP.cpp(515): warning C4244: “参数”: 从“double”转换到“float”，可能丢失数据
+     1>MultiCameraPnP.cpp(515): warning C4244: “参数”: 从“double”转换到“float”，可能丢失数据
+     1>MultiCameraPnP.cpp(717): warning C4018: “<”: 有符号/无符号不匹配
+     1>MultiCameraPnP.cpp(755): warning C4244: “参数”: 从“double”转换到“float”，可能丢失数据
+     1>MultiCameraPnP.cpp(755): warning C4244: “参数”: 从“double”转换到“float”，可能丢失数据
+     1>MultiCameraPnP.cpp(807): warning C4018: “<”: 有符号/无符号不匹配
+     1>MultiCameraPnP.cpp(857): warning C4018: “<”: 有符号/无符号不匹配
+     1>MultiCameraPnP.cpp(877): warning C4244: “参数”: 从“double”转换到“float”，可能丢失数据
+     1>MultiCameraPnP.cpp(877): warning C4244: “参数”: 从“double”转换到“float”，可能丢失数据
+     1>MultiCameraPnP.cpp(927): warning C4018: “<”: 有符号/无符号不匹配
+     1>MultiCameraPnP.cpp(975): warning C4018: “<”: 有符号/无符号不匹配
+     1>MultiCameraPnP.cpp(1037): warning C4018: “<”: 有符号/无符号不匹配
+     1>MultiCameraPnP.cpp(1071): warning C4018: “<”: 有符号/无符号不匹配
+     1>MultiCameraPnP.cpp(1077): warning C4018: “<”: 有符号/无符号不匹配
+     1>MultiCameraPnP.cpp(1105): warning C4018: “<”: 有符号/无符号不匹配
+     1>MultiCameraPnP.cpp(1352): warning C4244: “参数”: 从“double”转换到“float”，可能丢失数据
+     1>MultiCameraPnP.cpp(1406): warning C4244: “初始化”: 从“double”转换到“int”，可能丢失数据
+     1>MultiCameraPnP.cpp(1699): warning C4018: “<”: 有符号/无符号不匹配
+     1>MultiCameraPnP.cpp(1789): warning C4018: “<”: 有符号/无符号不匹配
+     1>MultiCameraPnP.cpp(1795): warning C4018: “<”: 有符号/无符号不匹配
+     1>MultiCameraPnP.cpp(1812): warning C4018: “<”: 有符号/无符号不匹配
+     1>MultiCameraPnP.cpp(2003): warning C4244: “参数”: 从“double”转换到“float”，可能丢失数据
+     1>MultiCameraPnP.cpp(2003): warning C4244: “参数”: 从“double”转换到“float”，可能丢失数据
+     1>MultiCameraPnP.cpp(2003): warning C4244: “参数”: 从“double”转换到“float”，可能丢失数据
+     1>MultiCameraPnP.cpp(2032): warning C4018: “<”: 有符号/无符号不匹配
+     1>MultiCameraPnP.cpp(2042): warning C4244: “=”: 从“double”转换到“float”，可能丢失数据
+     1>MultiCameraPnP.cpp(2049): warning C4244: “+=”: 从“double”转换到“float”，可能丢失数据
+     1>MultiCameraPnP.cpp(2114): warning C4244: “初始化”: 从“double”转换到“float”，可能丢失数据
+     1>MultiCameraPnP.cpp(2163): warning C4018: “<”: 有符号/无符号不匹配
+     1>MultiCameraPnP.cpp(2229): warning C4244: “=”: 从“double”转换到“float”，可能丢失数据
+     1>MultiCameraPnP.cpp(2230): warning C4244: “=”: 从“double”转换到“float”，可能丢失数据
+     1>MultiCameraPnP.cpp(2231): warning C4244: “=”: 从“double”转换到“float”，可能丢失数据
+     1>MultiCameraPnP.cpp(2312): warning C4244: “=”: 从“double”转换到“float”，可能丢失数据
+     1>MultiCameraPnP.cpp(2313): warning C4244: “=”: 从“double”转换到“float”，可能丢失数据
+     1>MultiCameraPnP.cpp(2314): warning C4244: “=”: 从“double”转换到“float”，可能丢失数据
+     1>MultiCameraPnP.cpp(2320): warning C4018: “<”: 有符号/无符号不匹配
+     1>MultiCameraPnP.cpp(2284): warning C4101: “q”: 未引用的局部变量
+     1>MultiCameraPnP.cpp(2409): warning C4018: “<”: 有符号/无符号不匹配
+     1>MultiCameraPnP.cpp(2447): warning C4244: “初始化”: 从“double”转换到“float”，可能丢失数据
+     1>MultiCameraPnP.cpp(2448): warning C4244: “初始化”: 从“double”转换到“float”，可能丢失数据
+     1>MultiCameraPnP.cpp(2545): warning C4244: “=”: 从“double”转换到“float”，可能丢失数据
+     1>MultiCameraPnP.cpp(2546): warning C4244: “=”: 从“double”转换到“float”，可能丢失数据
+     1>MultiCameraPnP.cpp(2547): warning C4244: “=”: 从“double”转换到“float”，可能丢失数据
+     1>MultiCameraPnP.cpp(2517): warning C4101: “q”: 未引用的局部变量
+     1>MultiCameraPnP.cpp(2517): warning C4101: “t”: 未引用的局部变量
+     1>MultiCameraPnP.cpp(2739): warning C4018: “<”: 有符号/无符号不匹配
+     1>MultiCameraPnP.cpp(2743): warning C4018: “<”: 有符号/无符号不匹配
+     1>MultiCameraPnP.cpp(2757): warning C4018: “<”: 有符号/无符号不匹配
+     1>MultiCameraPnP.cpp(2786): warning C4244: “初始化”: 从“double”转换到“float”，可能丢失数据
+     1>MultiCameraPnP.cpp(2787): warning C4244: “初始化”: 从“double”转换到“float”，可能丢失数据
+     1>MultiCameraPnP.cpp(2792): warning C4244: “初始化”: 从“float”转换到“int”，可能丢失数据
+     1>MultiCameraPnP.cpp(2793): warning C4244: “初始化”: 从“float”转换到“int”，可能丢失数据
+     1>e:\3d\photograph\git\vsfm\sfm\bundler\3rdparty\pba\DataInterface.h(213): warning C4244: “=”: 从“double”转换到“float”，可能丢失数据
+                 E:\3D\Photograph\GIT\VSFM\sfm\Bundler\3rdparty\pba\util.h(150): 参见对正在编译的函数 模板 实例化“void CameraT_<FT>::GetQuaternionRotation<float>(Float []) const”的引用
+                 with
+                 [
+                     FT=float,
+                     Float=float
+                 ]
+     1>e:\3d\photograph\git\vsfm\sfm\bundler\3rdparty\pba\DataInterface.h(214): warning C4244: “=”: 从“double”转换到“float”，可能丢失数据
+     1>e:\3d\photograph\git\vsfm\sfm\bundler\3rdparty\pba\DataInterface.h(215): warning C4244: “=”: 从“double”转换到“float”，可能丢失数据
+     1>e:\3d\photograph\git\vsfm\sfm\bundler\3rdparty\pba\DataInterface.h(216): warning C4244: “=”: 从“double”转换到“float”，可能丢失数据
+     1>e:\3d\photograph\git\vsfm\sfm\bundler\3rdparty\pba\DataInterface.h(223): warning C4244: “=”: 从“double”转换到“float”，可能丢失数据
+     1>e:\3d\photograph\git\vsfm\sfm\bundler\3rdparty\pba\DataInterface.h(224): warning C4244: “=”: 从“double”转换到“float”，可能丢失数据
+     1>e:\3d\photograph\git\vsfm\sfm\bundler\3rdparty\pba\DataInterface.h(225): warning C4244: “=”: 从“double”转换到“float”，可能丢失数据
+     1>e:\3d\photograph\git\vsfm\sfm\bundler\3rdparty\pba\DataInterface.h(226): warning C4244: “=”: 从“double”转换到“float”，可能丢失数据
+     1>e:\3d\photograph\git\vsfm\sfm\bundler\3rdparty\pba\DataInterface.h(230): warning C4244: “=”: 从“double”转换到“float”，可能丢失数据
+     1>e:\3d\photograph\git\vsfm\sfm\bundler\3rdparty\pba\DataInterface.h(231): warning C4244: “=”: 从“double”转换到“float”，可能丢失数据
+     1>e:\3d\photograph\git\vsfm\sfm\bundler\3rdparty\pba\DataInterface.h(232): warning C4244: “=”: 从“double”转换到“float”，可能丢失数据
+     1>e:\3d\photograph\git\vsfm\sfm\bundler\3rdparty\pba\DataInterface.h(233): warning C4244: “=”: 从“double”转换到“float”，可能丢失数据
+     1>e:\3d\photograph\git\vsfm\sfm\bundler\3rdparty\pba\DataInterface.h(237): warning C4244: “=”: 从“double”转换到“float”，可能丢失数据
+     1>e:\3d\photograph\git\vsfm\sfm\bundler\3rdparty\pba\DataInterface.h(238): warning C4244: “=”: 从“double”转换到“float”，可能丢失数据
+     1>e:\3d\photograph\git\vsfm\sfm\bundler\3rdparty\pba\DataInterface.h(239): warning C4244: “=”: 从“double”转换到“float”，可能丢失数据
+     1>e:\3d\photograph\git\vsfm\sfm\bundler\3rdparty\pba\DataInterface.h(240): warning C4244: “=”: 从“double”转换到“float”，可能丢失数据
+     1>e:\3d\photograph\git\vsfm\sfm\bundler\3rdparty\pba\DataInterface.h(284): warning C4244: “=”: 从“double”转换到“float”，可能丢失数据
+                 E:\3D\Photograph\GIT\VSFM\sfm\Bundler\3rdparty\pba\util.h(577): 参见对正在编译的函数 模板 实例化“void CameraT_<FT>::GetCameraCenter<float>(Float [])”的引用
+                 with
+                 [
+                     FT=double,
+                     Float=float
+                 ]
+     1>e:\3d\photograph\git\vsfm\sfm\bundler\3rdparty\pba\DataInterface.h(68): warning C4244: “=”: 从“const double”转换到“float”，可能丢失数据
+                 E:\3D\Photograph\GIT\VSFM\sfm\Bundler\3rdparty\pba\util.h(579): 参见对正在编译的函数 模板 实例化“void CameraT_<FT>::SetCameraT<CameraD>(const CameraX &)”的引用
+                 with
+                 [
+                     FT=float,
+                     CameraX=CameraD
+                 ]
        Link:
          D:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\bin\link.exe /ERRORREPORT:PROMPT /OUT:"E:\3D\Photograph\GIT\VSFM\sfm\Release\Bundler.exe" /INCREMENTAL:NO /NOLOGO /LIBPATH:E:\3D\Photograph\GIT\VSFM\sfm\Bundler\3rdparty\glew\lib\Release\Win32 /LIBPATH:E:\3D\Photograph\GIT\VSFM\sfm\siftgpu /LIBPATH:E:\3D\Photograph\GIT\VSFM\sfm\Bundler\3rdparty\pba /LIBPATH:D:\0penCV249\x86\vc10\lib /LIBPATH:E:\3D\Photograph\GIT\VSFM\sfm\Bundler\3rdparty\solvePnP kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /MANIFEST /ManifestFile:"Release\Bundler.exe.intermediate.manifest" /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /DEBUG /PDB:"E:\3D\Photograph\GIT\VSFM\sfm\Release\Bundler.pdb" /SUBSYSTEM:CONSOLE /OPT:REF /OPT:ICF /LTCG /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:"E:\3D\Photograph\GIT\VSFM\sfm\Release\Bundler.lib" /MACHINE:X86 Release\SIFTGPU.obj
          Release\BundleAdjuster.obj
@@ -26,4 +119,4 @@
 
 生成成功。
 
-已用时间 00:00:06.12
+已用时间 00:00:06.15

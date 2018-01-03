@@ -76,11 +76,19 @@ namespace bundler
 		void GetBundleAdjustData(std::vector<CameraT> &camera_data,std::vector<Point3D>& point_data,
 			std::vector<Point2D>& measurements,std::vector<int>& ptidx,std::vector<int>& camidx);
 
-		void AdjustCurrentBundle(std::vector<ImageKeyVector> pt_views);
+		void AdjustCurrentBundle(std::vector<ImageKeyVector> pt_views, bool _debug);
 
 		// check the point_view is correct or not.
 		int CheckPointKeyConsistency(const std::vector<ImageKeyVector> pt_views,
 			std::vector<int> added_order);
+
+		void DumpOutputFile(const char *output_dir, const char *filename, 
+			int num_points,	std::vector<int> order, 
+			camera_params_t *cameras, 
+			std::vector<PointData>& points,
+			std::vector<ImageKeyVector> &pt_views);
+
+		void Bundler2PMVS(std::vector<ImageKeyVector> pt_view);
 
 		//////////////////////////////////////////////////////////////////////////
 		bool FindCameraMatrices(int ith_camera,int jth_camera,
@@ -90,8 +98,7 @@ namespace bundler
 		int SelectPMatrix(std::vector<cv::Matx34d> _4Pmatrixs,cv::Point3d u,cv::Point3d u1);
 		int SelectPMatrix(std::vector<cv::Matx34d> _4Pmatrixs,cv::Point2f u,cv::Point2f u1);
 
-		bool TriangulatePointsBetweenViews(int older_view,int working_view,std::vector<ImageKeyVector>& pt_view );
-
+	
 		double TriangulatePoints(
 			int ith_camera,
 			int jth_camera,
