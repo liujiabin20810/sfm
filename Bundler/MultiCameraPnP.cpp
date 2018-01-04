@@ -19,7 +19,7 @@
 #include <list>
 #include <fstream>
 
-
+//#define SAVE_CLOUD
 #define USE_BUNDLER_EPOSE
 #define EPSILON 0.0001
 
@@ -316,8 +316,8 @@ namespace bundler
 				int view = map[points[i].m_views[j].image];
 				assert(view >= 0 && view < num_good_images);
 				int key =  points[i].m_views[j].key;
-				double x = - (points[i].m_views[j].x);
-				double y = - (points[i].m_views[j].y);
+				double x =  (points[i].m_views[j].x);   // 2d <-> 3d 投影关系 
+				double y =  (points[i].m_views[j].y);
 
 				pt_view_nums[view] += 1;
 				fprintf(f, " %d %d %0.2f %0.2f", view, key, x, y);
@@ -377,7 +377,7 @@ namespace bundler
 			// images
 			sprintf(outbuf,"%08d",count);
 			std::string out = std::string(buf) + std::string(outbuf) + images[i].substr(pos);
-			std::cout<< "save image :"<<out<<std::endl;
+			//std::cout<< "save image :"<<out<<std::endl;
 			cv::imwrite(out,im);
 			//////////////////////////////////////////////////////////////////////////
 			// txt
@@ -400,8 +400,8 @@ namespace bundler
 			int h = im.rows;
 			
 			double K[9] = 
-			{-focal, 0.0, 0.0,
-			0.0, focal, 0.0,
+			{-focal, 0.0, 0.5*w - 0.5,
+			0.0, focal, 0.5*h + 0.5,
 			0.0, 0.0, 1.0 };
 
 			double Ptmp[12] = 
@@ -412,7 +412,7 @@ namespace bundler
 			cv::Mat Kmat = cv::Mat(3,3,CV_64F,K);
 			cv::Mat Ptmat = cv::Mat(3,4,CV_64F,Ptmp);
 
-			cv::Mat_<double> Pmat = -Kmat*Ptmat;
+			cv::Mat_<double> Pmat = -Kmat*Ptmat;   //"CONTOUR" 让Y轴与图像纵坐标方向相反 x = PX ,(x = (x1,x2) u = x1 - w/2, v = h/2 - x2 )
 
 // 			matrix_product(3, 3, 3, 4, K, Ptmp, P);
 // 			matrix_scale(3, 4, P, -1.0, P);
@@ -420,7 +420,7 @@ namespace bundler
 			fprintf(camf, "CONTOUR\n");
 			fprintf(camf, "%0.6f %0.6f %0.6f %0.6f\n", Pmat(0,0), Pmat(0,1), Pmat(0,2),  Pmat(0,3));
 			fprintf(camf, "%0.6f %0.6f %0.6f %0.6f\n", Pmat(1,0), Pmat(1,1), Pmat(1,2),  Pmat(1,3));
-			fprintf(camf, "%0.6f %0.6f %0.6f %0.6f\n", Pmat(2,0), Pmat(2,2), Pmat(2,3),  Pmat(2,3));
+			fprintf(camf, "%0.6f %0.6f %0.6f %0.6f\n", Pmat(2,0), Pmat(2,1), Pmat(2,2),  Pmat(2,3));
 
 			fclose(camf);
 			++count;
@@ -867,14 +867,14 @@ namespace bundler
 			u1 = -um1.at<cv::Point3d>(0);
 			/////////////////////////////////////////////
 
-			cv::Point3d u(kp.x-m_cx, kp.y - m_cy, -1.0);
+			cv::Point3d u(kp.x-m_cx,m_cy - kp.y, -1.0);
 			cv::Mat_<double> um = mK.inv() * cv::Mat_<double>(u);
 			u = -um.at<cv::Point3d>(0);
 
 			cv::Mat_<double> X = IterativeLinearLSTriangulation(u, P, u1, P1);
 			cv::Mat_<double> xPt_img = KP1 * X;
 
-			cv::Point2f xPt_img_(xPt_img(0) / xPt_img(2) - m_cx, xPt_img(1) / xPt_img(2) - m_cy);
+			cv::Point2f xPt_img_(xPt_img(0) / xPt_img(2) - m_cx,m_cy - xPt_img(1) / xPt_img(2));
 
 			//#pragma omp critical
 			{
@@ -1071,13 +1071,13 @@ namespace bundler
 		for (int i = 0; i < src_pt1.size(); i++)
 		{
 			src_pt1[i].x -= m_cx;
-			src_pt1[i].y -= m_cy;
+			src_pt1[i].y = m_cy - src_pt1[i].y;
 		}
 
 		for (int i = 0; i < src_pt2.size(); i++)
 		{
 			src_pt2[i].x -= m_cx;
-			src_pt2[i].y -= m_cy;
+			src_pt2[i].y = m_cy - src_pt2[i].y;
 		}
 
 #ifdef USE_BUNDLER_EPOSE
@@ -1134,11 +1134,11 @@ namespace bundler
 			view_t v1,v2;
 			v1.image = i_best; v1.key = key_idx1;
 			v1.x = GetImageKey(i_best,key_idx1).m_x - m_cx;
-			v1.y = GetImageKey(i_best,key_idx1).m_y - m_cy;
+			v1.y = m_cy - GetImageKey(i_best,key_idx1).m_y;
 
 			v2.image = j_best;  v2.key = key_idx2;
 			v2.x = GetImageKey(j_best,key_idx2).m_x - m_cx;
-			v2.y = GetImageKey(j_best,key_idx2).m_y - m_cy;
+			v2.y = m_cy - GetImageKey(j_best,key_idx2).m_y;
 
 			cp.m_views.push_back(v1);
 			cp.m_views.push_back(v2);
@@ -1690,10 +1690,15 @@ namespace bundler
 		good_views.push_back(m_second_view);
 
  		AdjustCurrentBundle(point_views,false);
+#ifdef SAVE_CLOUD
+
 		char tmp[128];
 		sprintf(tmp,"/00_output[%d,%d].txt",m_first_view,m_second_view);
 		strcat(ch,tmp);
 		WriteCloudPoint(ch,0);
+
+#endif
+		
 
 		int order = 0;
 		while (done_views.size() < n_images)
@@ -1789,13 +1794,13 @@ namespace bundler
 				for (int j = 0; j < src_pt1.size(); j++)
 				{
 					src_pt1[j].x -= m_cx;
-					src_pt1[j].y -= m_cy;
+					src_pt1[j].y = m_cy - src_pt1[j].y;
 				}
 
 				for (int j = 0; j < src_pt2.size(); j++)
 				{
 					src_pt2[j].x -= m_cx;
-					src_pt2[j].y -= m_cy;
+					src_pt2[j].y  = m_cy - src_pt2[j].y ;
 				}
 
 				int (*_buf)[2] = new int[match_num][2];
@@ -1824,7 +1829,7 @@ namespace bundler
 							view_t v;
 							v.image = view; v.key = key_idx;
 							v.x = GetImageKey(view,key_idx).m_x - m_cx;
-							v.y = GetImageKey(view,key_idx).m_y - m_cy;
+							v.y = m_cy - GetImageKey(view,key_idx).m_y;
 							m_point_data[pt_idx].m_views.push_back(v);
 						}
 
@@ -1875,11 +1880,11 @@ namespace bundler
 					view_t v1 ,v2;
 					v1.image = view; v1.key = m_idx1;
 					v1.x = GetImageKey(view,m_idx1).m_x - m_cx;
-					v1.y = GetImageKey(view,m_idx1).m_y - m_cy;
+					v1.y = m_cy - GetImageKey(view,m_idx1).m_y;
 
 					v2.image = i ; v2.key = m_idx2;
 					v2.x = GetImageKey(i,m_idx2).m_x - m_cx;
-					v2.y = GetImageKey(i,m_idx2).m_y - m_cy;
+					v2.y = m_cy - GetImageKey(i,m_idx2).m_y;
 
 					cp.m_views.push_back(v1);
 					cp.m_views.push_back(v2);
@@ -1912,31 +1917,46 @@ namespace bundler
 
 			if(added_point_num == 0)
 				continue;
-	
+#ifdef SAVE_CLOUD
 			char tmp[64];
 			sprintf(tmp,"/%02d_%02d_output.txt",++order,i);
 			strcpy(ch,m_path);
 			strcat(ch,tmp);
 			WriteCloudPoint(ch,cloud_size_befor_triangulation);
-			
+#endif // SAVE_CLOUD
+	
 		}
 		
 		//CheckPointKeyConsistency(point_views,good_views);
 		//AdjustCurrentBundle(point_views,true);
-
-		sprintf(tmp,"/full_output.txt");
+		char outname[64];
+		sprintf(outname,"/full_output.txt");
 		strcpy(ch,m_path);
-		strcat(ch,tmp);
+		strcat(ch,outname);
 		WriteCloudPoint(ch,0);
 
 		Bundler2PMVS(point_views);
 		
-		sprintf(tmp,"/model.nvm");
-		strcpy(ch,m_path);
-		strcat(ch,tmp);
-		SaveModelFile(ch,point_views);
+// 		sprintf(tmp,"/model.nvm");
+// 		strcpy(ch,m_path);
+// 		strcat(ch,tmp);
+// 		SaveModelFile(ch,point_views);
 
-		
+		//save shell
+		char outbuf[2048];
+		sprintf(outbuf, "%s/run_pmvs.bat", m_path);
+
+		FILE *f_scr = fopen(outbuf, "w");
+		fprintf(f_scr, "# Script for using Yasutaka Furukawa's PMVS system \n");
+		//fprintf(f_scr, "CMVS_BIN_PATH= \"./ \"  # Edit this line before running\n");
+
+		char subdir[128] = "pmvs2/";
+		fprintf(f_scr, "cmvs.exe %s \n", subdir);
+		fprintf(f_scr, "genOption.exe %s \n", subdir);
+		fprintf(f_scr, "pmvs2.exe %s option-0000 \n", subdir);
+		fprintf(f_scr,"pause");
+
+		fclose(f_scr);
 
 		std::cout << "======================================================================\n";
 		std::cout << "========================= Depth Recovery DONE ========================\n";
@@ -2172,7 +2192,7 @@ namespace bundler
 			view_t v;
 			v.image = working_view; v.key = key_idx;
 			v.x = GetImageKey(working_view,key_idx).m_x - m_cx;
-			v.y = GetImageKey(working_view,key_idx).m_y - m_cy;
+			v.y = m_cy - GetImageKey(working_view,key_idx).m_y;
 
 			m_point_data[pt_idx].m_views.push_back(v);
 
@@ -2234,7 +2254,7 @@ namespace bundler
 			int pt2d_index = working_imagedata.m_visible_keys[i];
 			cv::Point2f pt2d ;
 			pt2d.x = (keypoints[pt2d_index].m_x - m_cx);
-			pt2d.y = (keypoints[pt2d_index].m_y - m_cy);
+			pt2d.y = (m_cy - keypoints[pt2d_index].m_y);
 					
 			imgPoints.push_back(pt2d);
 			// add 3d point m_view ?
@@ -2327,7 +2347,7 @@ namespace bundler
 
 				int view = im_idx, point = i;
 				float x = (GetImageKey(im_idx,key_idx).m_x - m_cx );
-				float y = (GetImageKey(im_idx,key_idx).m_y - m_cy );
+				float y = (m_cy - GetImageKey(im_idx,key_idx).m_y );
 
 				//std::cout<<imkey[k].first<<" "<<GetImageKey(im_idx,key_idx).m_x <<" "<<GetImageKey(im_idx,key_idx).m_y<<std::endl;
 
@@ -2563,7 +2583,7 @@ namespace bundler
 
 				int im_idx = good_views[cam_id];
 				float x = (GetImageKey(im_idx,key_idx).m_x - m_cx );
-				float y = (GetImageKey(im_idx,key_idx).m_y - m_cy );
+				float y = (m_cy - GetImageKey(im_idx,key_idx).m_y );
 
 // 				cv::Mat_<double> matP = (cv::Mat_<double>(3,1)<< -x,-y,1.0);
 // 				double K[9];
@@ -2679,8 +2699,8 @@ namespace bundler
 					int img = order[pt_views[i][j].first];
 					int key = pt_views[i][j].second;
 
-					double x = - (GetImageKey(img,key).m_x - m_cx);
-					double y = - (GetImageKey(img,key).m_y - m_cy);
+					double x = (GetImageKey(img,key).m_x - m_cx);
+					double y = (m_cy - GetImageKey(img,key).m_y);
 
 					fprintf(f, " %d %d %0.4f %0.4f", img, key, x, y);
 				}
@@ -2695,17 +2715,14 @@ namespace bundler
 	void CMultiCameraPnP::Bundler2PMVS(std::vector<ImageKeyVector> pt_view)
 	{
 		char filename[128] = "bundle.out";
-		DumpOutputFile(m_path,filename,m_point_data_index,good_views,m_cameras,m_point_data,pt_view);
+//		DumpOutputFile(m_path,filename,m_point_data_index,good_views,m_cameras,m_point_data,pt_view);
 
-		sprintf(filename, "%s/list.txt", m_path);
-		FILE *f = fopen(filename, "w");
-		for (int i =0; i < n_images; i++)
-		{
-			fprintf(f,"%s\n",m_feature_list[i].c_str());
-		}
-
-		fclose(f);
-
+		char subdir[128] ;
+		sprintf(subdir,"%s/pmvs2",m_path);
+		_mkdir(subdir);
+		char modeldir[128];
+		sprintf(modeldir,"%s/models",subdir);
+		_mkdir(modeldir);
 		// cameras 总数与图片相等，利用good_views的编号初始化对应相机内参
 		std::vector<camera_params_t> cameras;
 		cameras.resize(n_images);
@@ -2736,13 +2753,13 @@ namespace bundler
 			}
 		}
 		// 每张图片对应的添加顺序【added_order[0] 表示第一张图片在good_view中的位置 】
-		for (int i = 0; i < added_order.size(); i++)
-			std::cout<<added_order[i]<<" ";
-		std::cout<<std::endl;
-		// good_view 添加的顺序 【good_views[0] 表示第一次添加的是哪一幅图片 】
-		for (int i = 0; i < good_views.size(); i++)
-			std::cout<<i<<" "<<good_views[i]<<", ";
-		std::cout<<std::endl;
+// 		for (int i = 0; i < added_order.size(); i++)
+// 			std::cout<<added_order[i]<<" ";
+// 		std::cout<<std::endl;
+// 		// good_view 添加的顺序 【good_views[0] 表示第一次添加的是哪一幅图片 】
+// 		for (int i = 0; i < good_views.size(); i++)
+// 			std::cout<<i<<" "<<good_views[i]<<", ";
+// 		std::cout<<std::endl;
 
 		// 
 		std::vector<float> reproErrs(curr_num_cameras,0);
@@ -2790,7 +2807,7 @@ namespace bundler
 				int key_idx = m_views[j].key;
 
 				int x = GetImageKey(im_idx,key_idx).m_x - m_cx;
-				int y = GetImageKey(im_idx,key_idx).m_y - m_cy;
+				int y = m_cy - GetImageKey(im_idx,key_idx).m_y;
 
 				float dist = (-x - px)*(-x - px) + (-y - py)*(-y - py);
 				//cout<<x<<" "<<y<<" "<<px<<" "<<py<<endl;
@@ -2800,13 +2817,16 @@ namespace bundler
 			}
 		}
 
-		for (int i=0; i <curr_num_cameras; i++ )
-		{
-			cout<< counts[i] <<" "<<reproErrs[i]/counts[i]<<endl;
-		}
+// 		for (int i=0; i <curr_num_cameras; i++ )
+// 		{
+// 			cout<< counts[i] <<" "<<reproErrs[i]/counts[i]<<endl;
+// 		}
 
 		Utils utl;
-		utl.WritePMVS(m_path,m_feature_list,cameras,added_order,m_point_data);
+		utl.m_image_width = m_cx*2;
+		utl.m_image_height = m_cy*2;
+
+		utl.WritePMVS(subdir,m_feature_list,cameras,added_order,m_point_data);
 	}
 
 	CMultiCameraPnP::~CMultiCameraPnP()

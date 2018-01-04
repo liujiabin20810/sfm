@@ -36,10 +36,10 @@ using namespace bundler;
 
 int _tmain(int argc, _TCHAR* argv[])
 {
-	char sourcePath[256] = "../../data/photo";
-	char maskPath[256] = "../../data/photo";
+	char sourcePath[256] = "../../data/photo0103";
+	char maskPath[256] = "../../data/photo0103";
 	char cameraPath[256] = "";
-	char outPath[256] = "../../basecloud";
+	char outPath[256] = "../../basecloud/photo0103";
 	if(argc > 4)
 	{
 		strcpy(sourcePath,argv[1]);
